@@ -2,12 +2,12 @@
 #
 # Geneva — red-team Ollama range on Ludus host "reformation"
 #
-# Deploy as Ludus user GENEVA (one range per user):
-#   ludus user add -n 'Geneva' -i GENEVA
+# Deploy as Ludus user GENEVA:
 #   ludus --user GENEVA range config set -f range.yml
 #   ludus --user GENEVA range deploy
 #
-# Dedicated LLM box so Wittenberg does not share VLAN/RAM with model weights.
+# AFTER models are pulled, flip block_internet to true (see README) so the VM
+# cannot reach the public internet. Lab/WireGuard clients can still hit :11434.
 #
 ludus:
   - vm_name: "ollama"
@@ -20,6 +20,7 @@ ludus:
     linux: true
     testing:
       snapshot: true
+      # false while installing/pulling models; set true after deploy-ollama.yml
       block_internet: false
 
 defaults:
@@ -30,6 +31,7 @@ defaults:
 
 network:
   inter_vlan_default: REJECT
+  # ACCEPT until model pull is done; optionally set REJECT after lockdown
   external_default: ACCEPT
   wireguard_vlan_default: ACCEPT
   always_blocked_networks:

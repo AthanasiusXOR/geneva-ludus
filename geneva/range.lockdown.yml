@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://docs.ludus.cloud/schemas/range-config.json
+#
+# Apply AFTER ollama models are installed:
+#   ludus --user GENEVA range config set -f range.lockdown.yml
+#   ludus --user GENEVA range deploy
+#
+# Same VM, but block_internet + no external default so the box stays lab-only.
+#
+ludus:
+  - vm_name: "ollama"
+    hostname: "ollama"
+    template: debian-13-x64-server-template
+    vlan: 10
+    ip_last_octet: 10
+    ram_gb: 16
+    cpus: 8
+    linux: true
+    testing:
+      snapshot: true
+      block_internet: true
+
+defaults:
+  snapshot_with_RAM: false
+  stale_hours: 0
+  timezone: America/Denver
+  enable_dynamic_wallpaper: true
+
+network:
+  inter_vlan_default: REJECT
+  external_default: REJECT
+  wireguard_vlan_default: ACCEPT
+  always_blocked_networks:
+    - 192.168.1.0/24
+    - 192.168.0.0/24
+  rules: []

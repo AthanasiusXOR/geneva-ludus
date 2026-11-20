@@ -1,32 +1,53 @@
 # Geneva — red-team Ollama range
 
-Ludus host: **reformation**  
-Ludus user / range: **GENEVA**  
-Implant lab: [`../wittenberg/`](../wittenberg/)
+Ludus host: **reformation** · User: **GENEVA** · Sibling: [`../wittenberg/`](../wittenberg/)
 
-Keep this directory in git / on your laptop. `/opt/ranges/geneva` on reformation is only a working copy.
-
-## Deploy
+## After Ludus range deploy finishes
 
 ```bash
-ludus users add -n 'Geneva' -i GENEVA   # once; save password + API key
+cd /opt/ranges/geneva   # or your checkout
 
-ludus --user GENEVA range config set -f range.yml
+ export LUDUS_API_KEY='GENEVA.…'   # or use ludus --user GENEVA …
+./stamp-range-number.sh
+
+ansible-galaxy collection install -r requirements.yml
+ansible-playbook deploy-range.yml
+# pulls model + creates rt-assist — can take a long time on CPU
+```
+
+Smoke test (from WireGuard / lab):
+
+```bash
+curl http://10.<GENEVA_RANGE#>.10.10:11434/api/tags
+```
+
+## Then cut it off from the internet
+
+**1. Guest iptables lockdown** (blocks outbound from the VM):
+
+```bash
+ansible-playbook deploy-lockdown.yml
+```
+
+**2. Ludus router lockdown** (block_internet + reject external):
+
+```bash
+ludus --user GENEVA range config set -f range.lockdown.yml
 ludus --user GENEVA range deploy
 ludus --user GENEVA range logs -f
 ```
 
-Template required: `debian-13-x64-server-template`.
-
-## Ansible post-config
+**3. Verify**
 
 ```bash
-./stamp-range-number.sh
-ansible-galaxy collection install -r requirements.yml
-ansible-playbook deploy-range.yml
+# On the ollama VM (console/SSH) — should FAIL:
+curl -m 5 -I https://1.1.1.1
+
+# From your WG client — should WORK:
+curl http://10.<GENEVA_RANGE#>.10.10:11434/api/tags
 ```
 
-API: `http://10.<GENEVA_RANGE#>.10.10:11434` — model `rt-assist`  
-Creds on the VM: Ludus Debian default `debian` / `debian` (or `localuser` / `password` if your image uses that — check with `ludus` docs / console).
+WireGuard into Geneva still reaches `:11434`. Public internet from that VM should not.
 
-Update `wittenberg/group_vars/all.yml` → `geneva_ollama_url` after you know the Geneva range number.
+Creds: Debian template `debian` / `debian`.  
+Update `wittenberg/group_vars/all.yml` → `geneva_ollama_url` once you know the Geneva range number.
