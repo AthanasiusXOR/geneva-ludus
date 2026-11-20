@@ -4,7 +4,7 @@
   hosts: linattack
   become: true
   vars:
-    lin_user: "{{ local_linux_user }}"
+    lin_user: kali
     operator_ssh_pubkey: "{{ lookup('file', 'files/lin_key.pub') }}"
   tasks:
     - name: Ensure operator home .ssh exists

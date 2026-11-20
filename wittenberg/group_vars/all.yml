@@ -11,6 +11,9 @@ ad_domain_user: domainuser
 ad_domain_user_password: password
 local_linux_user: localuser
 local_linux_password: password
+# Kali attack box (Ludus template default)
+kali_user: kali
+kali_password: kali
 
 # Ollama lives on the GENEVA range — set after that range is deployed.
 # Example WireGuard path into GENEVA: http://10.<GENEVA_RANGE#>.10.10:11434

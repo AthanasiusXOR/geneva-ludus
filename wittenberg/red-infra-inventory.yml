@@ -45,6 +45,10 @@ linattack:
   hosts:
     linattack1:
       ansible_host: 10.RANGE_NUMBER.30.21
+  vars:
+    ansible_user: kali
+    ansible_password: kali
+    ansible_become_password: kali
 
 winattack:
   vars:
