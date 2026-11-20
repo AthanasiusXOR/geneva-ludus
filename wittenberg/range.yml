@@ -1,10 +1,14 @@
 # yaml-language-server: $schema=https://docs.ludus.cloud/schemas/range-config.json
 #
-# Implant Testing Range — Geneva slim profile (~60 GB host)
+# Wittenberg — implant / EDR test range on Ludus host "reformation"
 #
-# All VMs are defined so Ludus can deploy them, but do NOT power everything on.
-# Recommended powered-on set (~40 GB): attack stack + ollama + ONE target cell.
-# See README.md for power-on guidance.
+# Deploy as Ludus user WITTENBERG (one range per user):
+#   ludus user add -n 'Wittenberg' -i WITTENBERG
+#   ludus --user WITTENBERG range config set -f range.yml
+#   ludus --user WITTENBERG range deploy
+#
+# Do NOT power every VM. Recommended (~28 GB): attack stack + ONE target cell.
+# Ollama lives in the separate GENEVA range — see ../geneva/
 #
 ludus:
   ###############################################
@@ -269,19 +273,6 @@ ludus:
       snapshot: true
       block_internet: true
 
-  # Red-team uncensored Ollama (CPU). Keep powered with the attack stack.
-  - vm_name: "ollama-rt"
-    hostname: "ollama-rt"
-    template: debian-13-x64-server-template
-    vlan: 30
-    ip_last_octet: 50
-    ram_gb: 12
-    cpus: 6
-    linux: true
-    testing:
-      snapshot: true
-      block_internet: false
-
   ###############################################
   ################# Ansible BOX #################
   ###############################################
@@ -388,12 +379,4 @@ network:
       vlan_dst: 11
       protocol: all
       ports: all
-      action: ACCEPT
-
-    # Ansible controller → Ollama API (same-VLAN 30 clients already reach .50)
-    - name: Allow ansible to ollama API
-      vlan_src: 40
-      vlan_dst: 30
-      protocol: tcp
-      ports: 11434
       action: ACCEPT

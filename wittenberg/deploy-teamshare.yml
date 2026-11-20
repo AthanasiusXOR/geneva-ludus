@@ -39,7 +39,7 @@
         wk_name: "{{ item.value.wk }}"
         dc_ip: "{{ hostvars[item.value.dc].ansible_host | default('unknown') }}"
         wk_ip: "{{ hostvars[item.value.wk].ansible_host | default('unknown') }}"
-        ollama_ip: "{{ hostvars['ollama-rt'].ansible_host | default('10.RANGE_NUMBER.30.50') }}"
+        geneva_ollama_url: "{{ geneva_ollama_url }}"
       loop: "{{ domains | dict2items }}"
       loop_control:
         label: "{{ item.key }}"

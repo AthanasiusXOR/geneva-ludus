@@ -1,24 +1,26 @@
-# Ludus helpers (Geneva)
+# Reformation Ludus ranges
 
-Two pieces for Charles’s Ludus host:
+Ludus host: **reformation**
 
-1. **`install-all-templates.sh`** — Ludus 2.2 Sources flow (`source add --all` → `templates build`)
-2. **`implant-testing-range/`** — slim implant/EDR test range + Ansible + uncensored Ollama, sized for ~60 GB RAM
+| Directory | Ludus user | Purpose |
+| --- | --- | --- |
+| [`wittenberg/`](wittenberg/) | `WITTENBERG` | Implant / EDR test range (slim) |
+| [`geneva/`](geneva/) | `GENEVA` | Red-team Ollama (`rt-assist`) |
+| `install-all-templates.sh` | — | Ludus 2.2 Sources helper |
 
-## Implant testing range (start here for the lab)
-
-```bash
-cd implant-testing-range
-# read README.md for templates, deploy, power-on subset, and ansible
-```
-
-Slim profile keeps NONE + EDR cells (4 GB each), attack1 only, and `ollama-rt` (12 GB). Power **one target cell** at a time with the attack stack (~40 GB).
-
-## Templates helper
+Each Ludus **user owns one range**. Create both users once as admin, then deploy each folder’s `range.yml`.
 
 ```bash
- export LUDUS_API_KEY='YOUR-KEY'
-./install-all-templates.sh --install-only   # or full build
+ludus user add -n 'Wittenberg' -i WITTENBERG
+ludus user add -n 'Geneva' -i GENEVA
+
+# Wittenberg
+ludus --user WITTENBERG range config set -f wittenberg/range.yml
+ludus --user WITTENBERG range deploy
+
+# Geneva
+ludus --user GENEVA range config set -f geneva/range.yml
+ludus --user GENEVA range deploy
 ```
 
-See comments in the script and the older docs in git history if you only need Sources/`--all` reminders.
+On ~60 GB RAM: keep Wittenberg on **one target cell** while Geneva’s 16 GB Ollama box is up. Full steps are in each directory’s README.

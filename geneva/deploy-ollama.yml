@@ -1,5 +1,5 @@
 ---
-- name: Install red-team Ollama (uncensored) on ollama-rt
+- name: Install red-team Ollama (uncensored) on Geneva
   hosts: ollama
   become: true
   vars:
@@ -23,7 +23,7 @@
         state: directory
         mode: "0755"
 
-    - name: Bind Ollama on all interfaces for range clients
+    - name: Bind Ollama on all interfaces
       copy:
         dest: /etc/systemd/system/ollama.service.d/override.conf
         mode: "0644"
@@ -49,7 +49,7 @@
       retries: 30
       delay: 2
 
-    - name: Check if custom model already exists
+    - name: List existing models
       command: ollama list
       register: existing_models
       changed_when: false
@@ -57,8 +57,6 @@
     - name: Pull uncensored base model (first run can take a long time on CPU)
       command: "ollama pull {{ ollama_model_src }}"
       when: ollama_model_name not in existing_models.stdout
-      register: pull_result
-      # 2 hours — model download + disk write on a slow link
       async: 7200
       poll: 15
 
@@ -89,7 +87,7 @@
 
     - name: Report Ollama endpoint
       debug:
-        msg: "Ollama ready at http://{{ ansible_host }}:11434  models={{ model_list.stdout_lines }}"
+        msg: "Geneva Ollama ready at http://{{ ansible_host }}:11434  models={{ model_list.stdout_lines }}"
 
   handlers:
     - name: Restart ollama

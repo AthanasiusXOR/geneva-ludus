@@ -1,6 +1,5 @@
 ---
-# Slim range: no Linux *target* VMs. This playbook configures the Linux
-# attack/operator host (linattack1) instead of the old LIN01-04 targets.
+# Wittenberg: configure the Linux attack/operator host (linattack1).
 - name: Configure Linux attack host
   hosts: linattack
   become: true
@@ -29,16 +28,16 @@
         group: "{{ lin_user }}"
         mode: "0644"
         content: |
-          # Implant testing range — operator notes
+          # Wittenberg — operator notes
 
-          - Ollama RT API: http://10.RANGE_NUMBER.30.50:11434
-          - Model: rt-assist (uncensored / low-refusal)
+          - Ludus host: reformation
+          - This range user: WITTENBERG
           - Teamshare: //10.RANGE_NUMBER.30.1/share (or /mnt/share on teamshare)
-          - Power only ONE target cell at a time on Geneva (~60 GB host)
+          - Power only ONE target cell at a time (~60 GB host shared with GENEVA)
+          - Ollama is the separate GENEVA range (not on this VLAN)
+            WireGuard into GENEVA, then: curl http://10.<GENEVA_RANGE#>.10.10:11434/api/tags
+            Model: rt-assist
 
-          Example:
-            curl http://10.RANGE_NUMBER.30.50:11434/api/tags
-
-    - name: Remind operator to fix RANGE_NUMBER in notes
+    - name: Remind operator to fix placeholders in notes
       debug:
-        msg: "Edit /home/{{ lin_user }}/RANGE-NOTES.md and replace RANGE_NUMBER with your Ludus range id."
+        msg: "Edit /home/{{ lin_user }}/RANGE-NOTES.md — replace RANGE_NUMBER and GENEVA_RANGE#."

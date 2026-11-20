@@ -1,6 +1,9 @@
 ---
-# Shared credentials / domain metadata for the slim implant range.
+# Shared credentials / domain metadata for Wittenberg.
 # Keys match inventory `domain_key` values.
+
+range_name: wittenberg
+ludus_userid: WITTENBERG
 
 ad_domain_admin: domainadmin
 ad_domain_admin_password: password
@@ -9,10 +12,9 @@ ad_domain_user_password: password
 local_linux_user: localuser
 local_linux_password: password
 
-# Ollama red-team assistant
-ollama_model: huihui_ai/dolphin3-abliterated
-ollama_custom_model: rt-assist
-ollama_listen: "0.0.0.0:11434"
+# Ollama lives on the GENEVA range — set after that range is deployed.
+# Example WireGuard path into GENEVA: http://10.<GENEVA_RANGE#>.10.10:11434
+geneva_ollama_url: "http://GENEVA_OLLAMA_HOST:11434"
 
 domains:
   none_noint:

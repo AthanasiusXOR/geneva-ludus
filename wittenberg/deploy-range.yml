@@ -1,6 +1,6 @@
 ---
-# Post-Ludus configuration for the slim implant testing range.
-# Run from the ansible box (or any host that can reach range VLANs):
+# Post-Ludus configuration for Wittenberg (implant / EDR range).
+# Run from the ansible box (or any host that can reach Wittenberg VLANs):
 #
 #   ansible-galaxy collection install -r requirements.yml
 #   ansible-playbook deploy-range.yml
@@ -11,4 +11,3 @@
 - import_playbook: deploy-teamshare.yml
 - import_playbook: deploy-lin.yml
 - import_playbook: deploy-win.yml
-- import_playbook: deploy-ollama.yml

@@ -1,6 +1,6 @@
 ---
-# Operator / C2 / redirector inventory (slim — attack1 only, plus ollama).
-# Replace RANGE_NUMBER the same way as inventory.yml.
+# Wittenberg operator / C2 / redirector inventory (attack1 only).
+# Stamp RANGE_NUMBER with ./stamp-range-number.sh
 all:
   vars:
     ansible_user: localuser
@@ -12,8 +12,6 @@ services:
       ansible_host: 10.RANGE_NUMBER.30.1
     ansible:
       ansible_host: 10.RANGE_NUMBER.40.1
-    ollama-rt:
-      ansible_host: 10.RANGE_NUMBER.30.50
 
 c2_servers:
   hosts:
@@ -62,8 +60,3 @@ winattack:
   hosts:
     winattack1:
       ansible_host: 10.RANGE_NUMBER.30.31
-
-ollama:
-  hosts:
-    ollama-rt:
-      ansible_host: 10.RANGE_NUMBER.30.50

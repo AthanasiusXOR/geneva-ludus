@@ -1,0 +1,12 @@
+---
+# Geneva Ansible inventory (Ollama range).
+# Stamp RANGE_NUMBER: ./stamp-range-number.sh
+all:
+  children:
+    ollama:
+      hosts:
+        ollama:
+          ansible_host: 10.RANGE_NUMBER.10.10
+      vars:
+        ansible_user: localuser
+        ansible_password: password

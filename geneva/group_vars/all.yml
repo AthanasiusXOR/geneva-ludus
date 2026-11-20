@@ -1,0 +1,10 @@
+---
+range_name: geneva
+ludus_userid: GENEVA
+
+local_linux_user: localuser
+local_linux_password: password
+
+ollama_model: huihui_ai/dolphin3-abliterated
+ollama_custom_model: rt-assist
+ollama_listen: "0.0.0.0:11434"

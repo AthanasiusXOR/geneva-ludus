@@ -1,7 +1,7 @@
 ---
-# Replace RANGE_NUMBER with your Ludus range number before running Ansible.
-#   sed -i "s/RANGE_NUMBER/$(ludus range list --json | jq -r '.[0].rangeNumber // .rangeNumber')" inventory.yml
-# Or: export RANGENUMBER=5; sed -i "s/RANGE_NUMBER/${RANGENUMBER}/g" inventory.yml red-infra-inventory.yml
+# Wittenberg Ansible inventory.
+# Replace RANGE_NUMBER with the WITTENBERG user's range number:
+#   cd wittenberg && RANGENUMBER=… ./stamp-range-number.sh
 all:
   children:
     target_range_win:
@@ -42,8 +42,6 @@ all:
         ansible_password: password
         ansible_winrm_server_cert_validation: ignore
 
-    # No dedicated Linux *targets* in the slim range.
-    # linattack1 is the Linux operator box (see attack_space / linattack).
     target_range_lin:
       hosts: {}
       vars:
@@ -79,10 +77,6 @@ all:
             c2server1:
               ansible_host: 10.RANGE_NUMBER.30.11
               alias: my1
-        ollama:
-          hosts:
-            ollama-rt:
-              ansible_host: 10.RANGE_NUMBER.30.50
       vars:
         ansible_user: localuser
         ansible_password: password

@@ -1,4 +1,4 @@
-# Watchlog — {{ domain_config.domain_name }}
+# Watchlog — {{ domain_config.domain_name }} (Wittenberg)
 
 | Field | Value |
 | --- | --- |
@@ -7,9 +7,10 @@
 | Internet | {{ domain_config.internet }} |
 | DC | {{ dc_name }} ({{ dc_ip }}) |
 | Workstation | {{ wk_name }} ({{ wk_ip }}) |
-| Ollama RT | http://{{ ollama_ip }}:11434 (model `rt-assist`) |
+| Ollama (GENEVA range) | {{ geneva_ollama_url }} (model `rt-assist`) |
 
 ## Notes
-- Slim Geneva profile: power **one** target cell at a time with the attack stack.
+- Host: **reformation**. Implant range: **Wittenberg**. Ollama range: **Geneva**.
+- Power **one** target cell at a time with the attack stack.
 - Domain admin: `domainadmin` / `password` (Ludus defaults — change for anything non-lab).
 - Cohab listeners: DC tcp/80 (`svcghost`), workstation tcp/49201 (`vsss`).
