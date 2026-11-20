@@ -1,0 +1,45 @@
+---
+# Shared credentials / domain metadata for the slim implant range.
+# Keys match inventory `domain_key` values.
+
+ad_domain_admin: domainadmin
+ad_domain_admin_password: password
+ad_domain_user: domainuser
+ad_domain_user_password: password
+local_linux_user: localuser
+local_linux_password: password
+
+# Ollama red-team assistant
+ollama_model: huihui_ai/dolphin3-abliterated
+ollama_custom_model: rt-assist
+ollama_listen: "0.0.0.0:11434"
+
+domains:
+  none_noint:
+    domain_name: none.noint
+    fqdn: none.noint
+    dc: D-NONE-NOINT
+    wk: W-NONE-NOINT
+    internet: false
+    edr: none
+  none_int:
+    domain_name: none.int
+    fqdn: none.int
+    dc: D-NONE-INT
+    wk: W-NONE-INT
+    internet: true
+    edr: none
+  edr_noint:
+    domain_name: edr.noint
+    fqdn: edr.noint
+    dc: D-EDR-NOINT
+    wk: W-EDR-NOINT
+    internet: false
+    edr: mde
+  edr_int:
+    domain_name: edr.int
+    fqdn: edr.int
+    dc: D-EDR-INT
+    wk: W-EDR-INT
+    internet: true
+    edr: mde

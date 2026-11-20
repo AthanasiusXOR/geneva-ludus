@@ -1,0 +1,45 @@
+---
+- name: Gather facts from reachable hosts
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather network facts when host is reachable
+      setup:
+        gather_subset:
+          - network
+      failed_when: false
+
+- name: Deploy teamshare network-data stubs for each domain cell
+  hosts: teamshare
+  become: true
+  tasks:
+    - name: Ensure share root exists
+      file:
+        path: /mnt/share/network-data
+        state: directory
+        mode: "0755"
+
+    - name: Create network-data directory per domain
+      file:
+        state: directory
+        path: "/mnt/share/network-data/{{ item.value.domain_name }}"
+        mode: "0755"
+      loop: "{{ domains | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Drop watchlog notes for each domain cell
+      template:
+        src: templates/watchlog.md.j2
+        dest: "/mnt/share/network-data/{{ item.value.domain_name }}/watchlog.md"
+        mode: "0644"
+      vars:
+        domain_config: "{{ item.value }}"
+        dc_name: "{{ item.value.dc }}"
+        wk_name: "{{ item.value.wk }}"
+        dc_ip: "{{ hostvars[item.value.dc].ansible_host | default('unknown') }}"
+        wk_ip: "{{ hostvars[item.value.wk].ansible_host | default('unknown') }}"
+        ollama_ip: "{{ hostvars['ollama-rt'].ansible_host | default('10.RANGE_NUMBER.30.50') }}"
+      loop: "{{ domains | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"

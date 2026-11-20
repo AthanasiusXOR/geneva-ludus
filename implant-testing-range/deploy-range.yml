@@ -1,0 +1,14 @@
+---
+# Post-Ludus configuration for the slim implant testing range.
+# Run from the ansible box (or any host that can reach range VLANs):
+#
+#   ansible-galaxy collection install -r requirements.yml
+#   ansible-playbook deploy-range.yml
+#
+# Limit to powered-on hosts if only one target cell is up:
+#   ansible-playbook deploy-range.yml --limit 'attack_space:redirectors:D-NONE-NOINT:W-NONE-NOINT'
+#
+- import_playbook: deploy-teamshare.yml
+- import_playbook: deploy-lin.yml
+- import_playbook: deploy-win.yml
+- import_playbook: deploy-ollama.yml

@@ -1,0 +1,44 @@
+---
+# Slim range: no Linux *target* VMs. This playbook configures the Linux
+# attack/operator host (linattack1) instead of the old LIN01-04 targets.
+- name: Configure Linux attack host
+  hosts: linattack
+  become: true
+  vars:
+    lin_user: "{{ local_linux_user }}"
+    operator_ssh_pubkey: "{{ lookup('file', 'files/lin_key.pub') }}"
+  tasks:
+    - name: Ensure operator home .ssh exists
+      file:
+        path: "/home/{{ lin_user }}/.ssh"
+        state: directory
+        owner: "{{ lin_user }}"
+        group: "{{ lin_user }}"
+        mode: "0700"
+
+    - name: Install operator SSH public key
+      authorized_key:
+        user: "{{ lin_user }}"
+        key: "{{ operator_ssh_pubkey }}"
+        state: present
+
+    - name: Drop lab notes for operator
+      copy:
+        dest: "/home/{{ lin_user }}/RANGE-NOTES.md"
+        owner: "{{ lin_user }}"
+        group: "{{ lin_user }}"
+        mode: "0644"
+        content: |
+          # Implant testing range — operator notes
+
+          - Ollama RT API: http://10.RANGE_NUMBER.30.50:11434
+          - Model: rt-assist (uncensored / low-refusal)
+          - Teamshare: //10.RANGE_NUMBER.30.1/share (or /mnt/share on teamshare)
+          - Power only ONE target cell at a time on Geneva (~60 GB host)
+
+          Example:
+            curl http://10.RANGE_NUMBER.30.50:11434/api/tags
+
+    - name: Remind operator to fix RANGE_NUMBER in notes
+      debug:
+        msg: "Edit /home/{{ lin_user }}/RANGE-NOTES.md and replace RANGE_NUMBER with your Ludus range id."

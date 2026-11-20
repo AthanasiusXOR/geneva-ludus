@@ -1,0 +1,399 @@
+# yaml-language-server: $schema=https://docs.ludus.cloud/schemas/range-config.json
+#
+# Implant Testing Range — Geneva slim profile (~60 GB host)
+#
+# All VMs are defined so Ludus can deploy them, but do NOT power everything on.
+# Recommended powered-on set (~40 GB): attack stack + ollama + ONE target cell.
+# See README.md for power-on guidance.
+#
+ludus:
+  ###############################################
+  ############### TARGET INTERNAL ###############
+  ###############################################
+  # NONE / no internet
+  - vm_name: "D-NONE-NOINT"
+    hostname: "DNONE-NOINT"
+    template: win2022-server-x64-template
+    vlan: 10
+    ip_last_octet: 21
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      gpos:
+        - disable_defender
+      chocolatey_ignore_checksums: false
+      chocolatey_packages: []
+    domain:
+      fqdn: none.noint
+      role: primary-dc
+    testing:
+      snapshot: true
+      block_internet: true
+
+  - vm_name: "W-NONE-NOINT"
+    hostname: "W-NONE-NOINT"
+    template: win11-22h2-x64-enterprise-template
+    vlan: 10
+    ip_last_octet: 22
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      chocolatey_ignore_checksums: false
+      chocolatey_packages:
+        - openjdk
+        - 7zip.install
+    domain:
+      fqdn: none.noint
+      role: member
+    testing:
+      snapshot: true
+      block_internet: true
+
+  # NONE / internet
+  - vm_name: "D-NONE-INT"
+    hostname: "D-NONE-INT"
+    template: win2022-server-x64-template
+    vlan: 11
+    ip_last_octet: 21
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      gpos:
+        - disable_defender
+      chocolatey_ignore_checksums: false
+      chocolatey_packages: []
+    domain:
+      fqdn: none.int
+      role: primary-dc
+    testing:
+      snapshot: true
+      block_internet: false
+
+  - vm_name: "W-NONE-INT"
+    hostname: "W-NONE-INT"
+    template: win11-22h2-x64-enterprise-template
+    vlan: 11
+    ip_last_octet: 22
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      chocolatey_ignore_checksums: false
+      chocolatey_packages:
+        - openjdk
+        - 7zip.install
+    domain:
+      fqdn: none.int
+      role: member
+    testing:
+      snapshot: true
+      block_internet: false
+
+  # EDR (MDE placeholder cell) / no internet
+  - vm_name: "D-EDR-NOINT"
+    hostname: "D-EDR-NOINT"
+    template: win2022-server-x64-template
+    vlan: 10
+    ip_last_octet: 31
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      gpos: []
+      chocolatey_ignore_checksums: false
+      chocolatey_packages: []
+    domain:
+      fqdn: edr.noint
+      role: primary-dc
+    testing:
+      snapshot: true
+      block_internet: true
+
+  - vm_name: "W-EDR-NOINT"
+    hostname: "W-EDR-NOINT"
+    template: win11-22h2-x64-enterprise-template
+    vlan: 10
+    ip_last_octet: 32
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      chocolatey_ignore_checksums: false
+      chocolatey_packages:
+        - openjdk
+        - 7zip.install
+    domain:
+      fqdn: edr.noint
+      role: member
+    testing:
+      snapshot: true
+      block_internet: true
+
+  # EDR / internet
+  - vm_name: "D-EDR-INT"
+    hostname: "DC-EDR-INT"
+    template: win2022-server-x64-template
+    vlan: 11
+    ip_last_octet: 31
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      gpos: []
+      chocolatey_ignore_checksums: false
+      chocolatey_packages: []
+    domain:
+      fqdn: edr.int
+      role: primary-dc
+    testing:
+      snapshot: true
+      block_internet: false
+
+  - vm_name: "W-EDR-INT"
+    hostname: "W-EDR-INT"
+    template: win11-22h2-x64-enterprise-template
+    vlan: 11
+    ip_last_octet: 32
+    ram_gb: 4
+    cpus: 2
+    windows:
+      sysprep: true
+      chocolatey_ignore_checksums: false
+      chocolatey_packages:
+        - openjdk
+        - 7zip.install
+    domain:
+      fqdn: edr.int
+      role: member
+    testing:
+      snapshot: true
+      block_internet: false
+
+  ###############################################
+  ################ Redirectors ##################
+  ###############################################
+  - vm_name: "redir-e1-0"
+    hostname: "redir-e1-0"
+    template: ubuntu-22.04-x64-server-template
+    vlan: 20
+    ip_last_octet: 10
+    ram_gb: 1
+    cpus: 1
+    linux: true
+    dns_rewrites:
+      - redir-e0.cloud
+    testing:
+      snapshot: true
+      block_internet: false
+
+  - vm_name: "redir-w1-0"
+    hostname: "redir-w1-0"
+    template: ubuntu-22.04-x64-server-template
+    vlan: 20
+    ip_last_octet: 20
+    ram_gb: 1
+    cpus: 1
+    linux: true
+    dns_rewrites:
+      - redir-w0.cloud
+    testing:
+      snapshot: true
+      block_internet: false
+
+  ###############################################
+  ################ ATTACK SPACE #################
+  ###############################################
+  - vm_name: "teamshare"
+    hostname: "teamshare"
+    template: ubuntu-22.04-x64-server-template
+    vlan: 30
+    ip_last_octet: 1
+    ram_gb: 2
+    cpus: 1
+    linux: true
+    testing:
+      snapshot: true
+      block_internet: true
+
+  - vm_name: "linattack1"
+    hostname: "linattack1"
+    template: kali-x64-desktop-template
+    vlan: 30
+    ip_last_octet: 21
+    ram_gb: 6
+    cpus: 4
+    linux: true
+    testing:
+      snapshot: true
+      block_internet: false
+
+  - vm_name: "winattack1"
+    hostname: "winattack1"
+    template: win2022-server-x64-template
+    vlan: 30
+    ip_last_octet: 31
+    ram_gb: 4
+    cpus: 2
+    windows:
+      install_additional_tools: false
+      sysprep: true
+      gpos: []
+    testing:
+      snapshot: true
+      block_internet: true
+
+  - vm_name: "c2server0"
+    hostname: "c2server0"
+    template: ubuntu-22.04-x64-server-template
+    vlan: 30
+    ip_last_octet: 10
+    ram_gb: 2
+    cpus: 2
+    linux: true
+    testing:
+      snapshot: true
+      block_internet: true
+
+  - vm_name: "c2server1"
+    hostname: "c2server1"
+    template: ubuntu-22.04-x64-server-template
+    vlan: 30
+    ip_last_octet: 11
+    ram_gb: 2
+    cpus: 2
+    linux: true
+    testing:
+      snapshot: true
+      block_internet: true
+
+  # Red-team uncensored Ollama (CPU). Keep powered with the attack stack.
+  - vm_name: "ollama-rt"
+    hostname: "ollama-rt"
+    template: debian-13-x64-server-template
+    vlan: 30
+    ip_last_octet: 50
+    ram_gb: 12
+    cpus: 6
+    linux: true
+    testing:
+      snapshot: true
+      block_internet: false
+
+  ###############################################
+  ################# Ansible BOX #################
+  ###############################################
+  - vm_name: "ansible"
+    hostname: "ansible"
+    template: ubuntu-22.04-x64-server-template
+    vlan: 40
+    ip_last_octet: 1
+    ram_gb: 2
+    cpus: 2
+    linux: true
+    testing:
+      snapshot: true
+      block_internet: false
+
+defaults:
+  # RAM snapshots chew disk/IO on a tight host — disk-only snapshots are enough here
+  snapshot_with_RAM: false
+  stale_hours: 0
+  ad_domain_functional_level: "WinThreshold"
+  ad_forest_functional_level: "WinThreshold"
+  ad_domain_admin: domainadmin
+  ad_domain_admin_password: password
+  ad_domain_user: domainuser
+  ad_domain_user_password: password
+  ad_domain_safe_mode_password: password
+  timezone: America/Denver
+  enable_dynamic_wallpaper: true
+
+network:
+  inter_vlan_default: REJECT
+  external_default: ACCEPT
+  wireguard_vlan_default: ACCEPT
+  always_blocked_networks:
+    - 192.168.1.0/24
+    - 192.168.0.0/24
+
+  rules:
+    - name: Allow ansible Box to VLAN 30
+      vlan_src: 40
+      vlan_dst: 30
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow ansible Box to VLAN 20
+      vlan_src: 40
+      vlan_dst: 20
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow ansible Box to VLAN 11
+      vlan_src: 40
+      vlan_dst: 11
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow ansible Box to VLAN 10
+      vlan_src: 40
+      vlan_dst: 10
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow VLAN 10 to the Redirs
+      vlan_src: 10
+      vlan_dst: 20
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow VLAN 11 to the Redirs
+      vlan_src: 11
+      vlan_dst: 20
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow VLAN 30 to the Redirs
+      vlan_src: 30
+      vlan_dst: 20
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow redirs -> attack
+      vlan_src: 20
+      vlan_dst: 30
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow VLAN 30 to target
+      vlan_src: 30
+      vlan_dst: 10
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    - name: Allow VLAN 30 to target2
+      vlan_src: 30
+      vlan_dst: 11
+      protocol: all
+      ports: all
+      action: ACCEPT
+
+    # Ansible controller → Ollama API (same-VLAN 30 clients already reach .50)
+    - name: Allow ansible to ollama API
+      vlan_src: 40
+      vlan_dst: 30
+      protocol: tcp
+      ports: 11434
+      action: ACCEPT

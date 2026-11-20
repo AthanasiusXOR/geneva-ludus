@@ -1,0 +1,27 @@
+---
+# Deploys the lab TCP cohab listener used as a stand-in persistence/implant artifact.
+- name: Copy tcp_listener.exe to {{ cohab_fullpath }}
+  ansible.windows.win_copy:
+    src: files/tcp_listener.exe
+    dest: "{{ cohab_fullpath }}"
+
+- name: Install cohab Windows service {{ cohab_name }}
+  ansible.windows.win_service:
+    name: "{{ cohab_name }}"
+    path: '{{ cohab_fullpath }} {{ tcp_port }}'
+    display_name: "{{ cohab_name }}"
+    description: "{{ cohab_desc }}"
+    start_mode: auto
+    state: started
+  failed_when: false
+
+- name: Allow inbound TCP {{ tcp_port }} for cohab
+  ansible.windows.win_firewall_rule:
+    name: "Lab cohab {{ cohab_name }} {{ tcp_port }}"
+    localport: "{{ tcp_port }}"
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: true
+  failed_when: false
