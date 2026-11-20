@@ -1,6 +1,6 @@
 ---
 - name: Install red-team Ollama (uncensored) on Geneva
-  hosts: ollama
+  hosts: ollama_hosts
   become: true
   vars:
     ollama_model_src: "{{ ollama_model }}"

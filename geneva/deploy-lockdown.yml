@@ -5,7 +5,7 @@
 #   ansible-playbook deploy-lockdown.yml
 #
 - name: Lock down Geneva Ollama VM egress
-  hosts: ollama
+  hosts: ollama_hosts
   become: true
   tasks:
     - name: Install iptables-persistent

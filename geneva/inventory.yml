@@ -1,14 +1,15 @@
 ---
 # Geneva Ansible inventory (Ollama range).
 # Stamp RANGE_NUMBER: ./stamp-range-number.sh
+#
+# Try debian/debian first (classic Ludus Debian). If UNREACHABLE, use localuser/password.
 all:
   children:
-    ollama:
+    ollama_hosts:
       hosts:
         ollama:
           ansible_host: 10.RANGE_NUMBER.10.10
       vars:
-        # Ludus Debian template default
-        ansible_user: debian
-        ansible_password: debian
-        ansible_become_password: debian
+        ansible_user: localuser
+        ansible_password: password
+        ansible_become_password: password

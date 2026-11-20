@@ -2,8 +2,11 @@
 range_name: geneva
 ludus_userid: GENEVA
 
-local_linux_user: debian
-local_linux_password: debian
+# debian-13 on current Ludus builds typically uses localuser:password
+# (legacy debian templates used debian:debian — try that if localuser fails)
+local_linux_user: localuser
+local_linux_password: password
+
 
 
 ollama_model: huihui_ai/dolphin3-abliterated

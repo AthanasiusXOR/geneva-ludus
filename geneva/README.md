@@ -49,5 +49,5 @@ curl http://10.<GENEVA_RANGE#>.10.10:11434/api/tags
 
 WireGuard into Geneva still reaches `:11434`. Public internet from that VM should not.
 
-Creds: Debian template `debian` / `debian`.  
+Creds (try in order): `localuser` / `password`, then `debian` / `debian`.  
 Update `wittenberg/group_vars/all.yml` → `geneva_ollama_url` once you know the Geneva range number.
