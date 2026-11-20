@@ -40,7 +40,8 @@
         wk_name: "{{ item.value.wk }}"
         dc_ip: "{{ hostvars[item.value.dc].ansible_host | default('unknown') }}"
         wk_ip: "{{ hostvars[item.value.wk].ansible_host | default('unknown') }}"
-        geneva_ollama_url: "{{ geneva_ollama_url }}"
+        # do NOT set geneva_ollama_url: "{{ geneva_ollama_url }}" here — recursive loop.
+        # group_vars/all.yml already provides geneva_ollama_url for the template.
       loop: "{{ domains | dict2items }}"
       loop_control:
         label: "{{ item.key }}"
