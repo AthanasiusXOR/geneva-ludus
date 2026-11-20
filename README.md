@@ -5,8 +5,9 @@
 | Path | Ludus user | Purpose |
 | --- | --- | --- |
 | [`SETUP.md`](SETUP.md) / [`setup-reformation.sh`](setup-reformation.sh) | — | Install Ludus + required templates |
-| [`wittenberg/`](wittenberg/) | `WITTENBERG` | Implant / EDR test range |
-| [`geneva/`](geneva/) | `GENEVA` | Red-team Ollama (`rt-assist`) |
+| [`wittenberg/`](wittenberg/) | `WITTENBERG` | Red infra + **GOAD** (`range-goad.yml`) — Defender ON |
+| [`wittenberg/GOAD-DEFENDER.md`](wittenberg/GOAD-DEFENDER.md) | — | **Start here** for GOAD + Defender |
+| [`geneva/`](geneva/) | `GENEVA` | Ollama (optional / park it) |
 | [`pack-ranges.sh`](pack-ranges.sh) | — | Make a tarball to copy off-box |
 
 ## Get a clean copy (not only on Ludus)

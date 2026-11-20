@@ -1,16 +1,19 @@
-# Wittenberg — implant / EDR test range
+# Wittenberg — red team + GOAD + Defender
 
-Ludus host: **reformation**  
-Ludus user / range: **WITTENBERG**  
-Ollama lives in the sibling range: [`../geneva/`](../geneva/)
+Ludus host: **reformation** · User: **WITTENBERG**
 
-This directory is the **source of truth** for the range config + post-deploy Ansible. Keep a copy outside Ludus (git clone / rsync). On reformation, `/opt/ranges/wittenberg` is just a working checkout — prefer pulling from this repo over hand-editing on the Ludus host.
+**Preferred config now:** [`range-goad.yml`](range-goad.yml) — see [`GOAD-DEFENDER.md`](GOAD-DEFENDER.md).
 
-## What’s in this range
+| File | Purpose |
+| --- | --- |
+| `range-goad.yml` | **Use this** — GOAD targets + attack stack, Defender AV on |
+| `range.yml` | Old NONE/EDR matrix (legacy) |
+| `GOAD-DEFENDER.md` | Deploy steps + MDE onboarding notes |
 
-- Targets: NONE + EDR cells (DC + Win11), internet / no-internet  
-- Attack: `linattack1` (Kali), `winattack1`, C2s, redirs, teamshare, ansible  
-- Not included: Ollama (Geneva)
+- Attack: kali, winattack, C2s, redirs, teamshare, ansible  
+- Targets: GOAD (sevenkingdoms / north / essos)  
+- Microsoft Defender Antivirus: **enabled** (no `disable_defender` GPO)  
+- Park Geneva while deploying: `ludus --user GENEVA power off -n all`
 
 ## Credentials (Ludus defaults)
 
