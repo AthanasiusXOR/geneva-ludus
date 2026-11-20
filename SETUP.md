@@ -1,8 +1,19 @@
 # Setup Ludus on Wittenberg
 
-Run these steps **on the Wittenberg host** (SSH as root). Fresh Debian 12/13 box with nested virt if it is a VM, large disk, ~60 GB+ RAM.
+Run on the **Wittenberg** host (SSH as root). Fresh Debian 12/13, nested virt if a VM, large disk, ~60 GB+ RAM.
 
-## Templates GENEVA needs
+**Ludus user:** `ATHANASIUS` — create it once, then use its API key as your standing alias for the root/admin key.
+
+## Does `setup-wittenberg.sh` download templates?
+
+**Yes, with `--templates`.** That flag:
+
+1. **Installs** Packer template definitions from Ludus Sources (`source add` — pulls ubuntu-22.04 from BSL if missing).
+2. **Builds** the three images via Packer (`templates build`) — Packer downloads ISOs and creates the templates. This is the long step; watch with `ludus templates logs -f`.
+
+`--install` only installs Ludus. `--users` only creates ATHANASIUS. Neither of those builds templates by itself.
+
+## Templates Geneva needs
 
 | Template | Used for |
 | --- | --- |
@@ -10,37 +21,29 @@ Run these steps **on the Wittenberg host** (SSH as root). Fresh Debian 12/13 box
 | `ubuntu-22.04-x64-server-template` | redirs, C2, teamshare, ansible (BSL source) |
 | `kali-x64-desktop-template` | linattack1 |
 
-Do **not** build every Packer template — only these three.
+Only these three — do not build the whole catalog unless you want to.
 
 ## Option A — helper script
 
 ```bash
-cd /opt/ranges   # or wherever you synced this repo
+cd /opt/ranges
 chmod +x setup-wittenberg.sh
 
-# 1) Install Ludus (interactive; set node name to wittenberg)
+# 1) Install Ludus (node name: wittenberg)
 sudo ./setup-wittenberg.sh --install
-
-# After reboot / when ready:
+# reboot if asked
 sudo ludus-install-status
-# Copy the admin API key, then:
- export LUDUS_API_KEY='ADMIN-OR-ROOT-KEY'
+ export LUDUS_API_KEY='…'   # install/root key for first bootstrap
 
-# 2) Ubuntu from BSL + build the three templates
-./setup-wittenberg.sh --templates
+# 2) Download/build templates + create ATHANASIUS
+./setup-wittenberg.sh --templates --users
 ludus templates logs -f
 
-# 3) Create GENEVA user
-./setup-wittenberg.sh --users
+# 3) Switch to ATHANASIUS as your root alias
+ export LUDUS_API_KEY='…'   # key printed by user add
 ```
 
-One shot after Ludus is installed and `LUDUS_API_KEY` is set:
-
-```bash
-./setup-wittenberg.sh --templates --users
-```
-
-## Option B — manual commands
+## Option B — manual
 
 ### 1. Install Ludus
 
@@ -48,58 +51,52 @@ One shot after Ludus is installed and `LUDUS_API_KEY` is set:
 su -
 apt update && apt install -y curl sudo ca-certificates jq
 curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
-# Accept EULA; set node name to wittenberg; fix public IP if prompted
-# Reboot if asked, then:
+# node name: wittenberg
 ludus-install-status
  export LUDUS_API_KEY='…'
 ```
 
-### 2. Templates
+### 2. Templates (download defs + Packer build)
 
 ```bash
 ludus source add ludus-source-bsl --templates ubuntu-22.04-x64-server-template
-# if source id differs: ludus source list
-
 ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
 ludus templates logs -f
-# Stuck DHCP?  ludus templates abort
-# then: systemctl restart dnsmasq   (or the Ludus dnsmasq unit) and rebuild the stuck one
+# Stuck DHCP?  ludus templates abort ; restart dnsmasq; rebuild the stuck one
 ```
 
-### 3. Create GENEVA user
+### 3. Create ATHANASIUS (root API alias)
 
 ```bash
-ludus user add -n 'Geneva' -i GENEVA
-# Save the API key
+ludus user add -n 'Athanasius' -i ATHANASIUS
+# Save the API key — use it from now on instead of the install root key
+ export LUDUS_API_KEY='…'
 ```
 
-### 4. Deploy GENEVA (after templates show BUILT)
+### 4. Deploy Geneva range
 
 ```bash
-ludus --user GENEVA range config set -f /opt/ranges/geneva/range.yml
-# or: -f geneva/range.yml from a checkout
-ludus --user GENEVA range deploy
-ludus --user GENEVA range logs -f
+ludus --user ATHANASIUS range config set -f /opt/ranges/geneva/range.yml
+ludus --user ATHANASIUS range deploy
+ludus --user ATHANASIUS range logs -f
 ```
 
 ### 5. Stamp inventories + optional Ansible
 
 ```bash
 cd /opt/ranges/geneva
-RANGENUMBER=$(ludus --user GENEVA range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
+RANGENUMBER=$(ludus --user ATHANASIUS range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
 export RANGENUMBER
 ./stamp-range-number.sh
-
-# optional Kali notes / SSH key:
-ansible-playbook deploy-range.yml --limit linattack
+ansible-playbook deploy-range.yml --limit linattack   # optional
 ```
 
 ## Verify
 
 ```bash
-ludus templates list   # three templates BUILT
-ludus user list        # GENEVA present
-ludus --user GENEVA range list
+ludus templates list              # three BUILT
+ludus user list                   # ATHANASIUS
+ludus --user ATHANASIUS range list
 free -h
 ```
 
@@ -111,10 +108,4 @@ free -h
 | Ubuntu | localuser | password |
 | GOAD domainadmin | domainadmin | password |
 
-Microsoft Defender Antivirus is **on** for GOAD Windows VMs. Cloud MDE console needs your tenant onboarding package separately.
-
-## Docs
-
-- [Install / Quick Start](https://docs.ludus.cloud/docs/category/quick-start/)
-- [Build templates](https://docs.ludus.cloud/docs/quick-start/build-templates/)
-- [Sources (2.2)](https://docs.ludus.cloud/docs/using-ludus/sources)
+Defender AV is on for GOAD Windows. Cloud MDE still needs your tenant onboarding package if you want the cloud console.

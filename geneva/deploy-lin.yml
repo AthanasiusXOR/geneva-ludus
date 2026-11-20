@@ -28,17 +28,17 @@
         group: "{{ lin_user }}"
         mode: "0644"
         content: |
-          # GENEVA range — operator notes
+          # Geneva range — operator notes
 
           Ludus host: wittenberg
-          Ludus user: GENEVA
+          Ludus user: ATHANASIUS  (API key = root alias)
 
           ## GOAD (VLAN 10)
-          - kingslanding  10.<RANGE#>10.10  sevenkingdoms.local (DC01)
-          - winterfell    10.<RANGE#>10.11  north.sevenkingdoms.local (DC02)
-          - castelblack   10.<RANGE#>10.12  member + MSSQL/IIS
-          - meereen       10.<RANGE#>10.13  essos.local (DC03)
-          - braavos       10.<RANGE#>10.14  ADCS + MSSQL
+          - kingslanding  10.<RANGE#>.10.10  sevenkingdoms.local (DC01)
+          - winterfell    10.<RANGE#>.10.11  north.sevenkingdoms.local (DC02)
+          - castelblack   10.<RANGE#>.10.12  member + MSSQL/IIS
+          - meereen       10.<RANGE#>.10.13  essos.local (DC03)
+          - braavos       10.<RANGE#>.10.14  ADCS + MSSQL
 
           Microsoft Defender Antivirus is ENABLED on GOAD Windows hosts.
 
@@ -46,5 +46,3 @@
           - Kali: kali / kali
           - GOAD domainadmin: domainadmin / password (sevenkingdoms)
           - See Orange Cyberdefense GOAD docs for north/essos users
-
-          Replace RANGE_NUMBER with your Ludus range number.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pack GENEVA range + Wittenberg setup helpers into a tarball.
+# Pack Geneva range + Wittenberg setup helpers into a tarball.
 set -euo pipefail
 cd "$(dirname "$0")"
 stamp="$(date +%Y%m%d)"
@@ -17,6 +17,3 @@ tar -czf "$out" \
 
 echo "Wrote $(pwd)/$out"
 ls -lh "$out"
-echo
-echo "Copy off Ludus, e.g.:"
-echo "  scp $(pwd)/$out you@laptop:~/"

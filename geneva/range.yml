@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://docs.ludus.cloud/schemas/range-config.json
 #
-# GENEVA range — Red-team infra + GOAD + Microsoft Defender ON
+# Geneva range — Red-team infra + GOAD + Microsoft Defender ON
 #
 # Ludus host (Debian base): wittenberg
-# Ludus user / range:       GENEVA
+# Ludus user / range owner: ATHANASIUS  (API key = root/admin alias)
 #
 # Attack stack: VLANs 20/30/40
 # GOAD targets: VLAN 10 (sevenkingdoms / north / essos)

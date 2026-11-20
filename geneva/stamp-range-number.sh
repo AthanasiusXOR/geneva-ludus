@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 if [[ -n "${RANGENUMBER:-}" ]]; then
   n="$RANGENUMBER"
 elif command -v ludus >/dev/null 2>&1; then
-  n="$(ludus --user GENEVA range list --json 2>/dev/null | jq -r '.rangeNumber // .[0].rangeNumber // empty' || true)"
+  n="$(ludus --user ATHANASIUS range list --json 2>/dev/null | jq -r '.rangeNumber // .[0].rangeNumber // empty' || true)"
 else
   echo "Set RANGENUMBER=N  (e.g. RANGENUMBER=1 ./stamp-range-number.sh)" >&2
   exit 1

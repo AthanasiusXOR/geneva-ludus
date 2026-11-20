@@ -1,9 +1,9 @@
-# GENEVA range
+# Geneva range
 
-Ludus host: **wittenberg** (Debian base)  
-Ludus user: **GENEVA**
+Ludus host: **wittenberg**  
+Ludus user: **ATHANASIUS** (API key = root/admin alias)
 
-Red-team attack infra + **GOAD** targets, with **Microsoft Defender Antivirus enabled** (no `disable_defender` GPOs).
+Red-team attack infra + **GOAD**, Microsoft Defender Antivirus **on**.
 
 | VLAN | Contents |
 | --- | --- |
@@ -12,11 +12,11 @@ Red-team attack infra + **GOAD** targets, with **Microsoft Defender Antivirus en
 | 30 | Kali, winattack, C2s, teamshare |
 | 40 | Ansible |
 
-Config: **`range.yml`**
+Config: **`range.yml`** — GOAD VMs name as `ATHANASIUS-DC01`, etc.
 
-From-scratch Ludus install + deploy: see [`../SETUP.md`](../SETUP.md).
+From-scratch: [`../SETUP.md`](../SETUP.md).
 
-## Creds (lab defaults)
+## Creds
 
 | Host | User | Pass |
 | --- | --- | --- |
@@ -24,14 +24,12 @@ From-scratch Ludus install + deploy: see [`../SETUP.md`](../SETUP.md).
 | Debian/Ubuntu | localuser / debian | password / debian |
 | GOAD domainadmin | domainadmin | password |
 
-Cloud MDE (tenant EDR) still needs your onboarding package if you want cloud console — Defender AV is already on without it.
-
 ## After Ludus deploy
 
 ```bash
+ export LUDUS_API_KEY='…'   # ATHANASIUS
 cd geneva
-RANGENUMBER=$(ludus --user GENEVA range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
+RANGENUMBER=$(ludus --user ATHANASIUS range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
 ./stamp-range-number.sh
-# optional:
-ansible-playbook deploy-range.yml --limit linattack
+ansible-playbook deploy-range.yml --limit linattack   # optional
 ```
