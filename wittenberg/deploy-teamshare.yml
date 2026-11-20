@@ -30,7 +30,8 @@
 
     - name: Drop watchlog notes for each domain cell
       template:
-        src: templates/watchlog.md.j2
+        # template module already searches ./templates/ — don't prefix templates/
+        src: watchlog.md.j2
         dest: "/mnt/share/network-data/{{ item.value.domain_name }}/watchlog.md"
         mode: "0644"
       vars:
