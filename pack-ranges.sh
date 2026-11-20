@@ -6,15 +6,16 @@ stamp="$(date +%Y%m%d)"
 out="reformation-ranges-${stamp}.tar.gz"
 
 tar -czf "$out" \
-  README.md SETUP.md \
-  setup-reformation.sh install-all-templates.sh pack-ranges.sh \
-  wittenberg geneva \
   --exclude='wittenberg/inventory.yml.bak' \
   --exclude='*/__pycache__' \
-  --exclude='*.retry'
+  --exclude='*.retry' \
+  --exclude='reformation-ranges-*.tar.gz' \
+  README.md SETUP.md \
+  setup-reformation.sh install-all-templates.sh pack-ranges.sh \
+  wittenberg geneva
 
-echo "Wrote $out"
-echo "Copy somewhere safe (laptop, git remote), then:"
-echo "  scp $out you@laptop:~/"
-echo "  # or: git push  (preferred)"
+echo "Wrote $(pwd)/$out"
 ls -lh "$out"
+echo
+echo "Copy off Ludus, e.g.:"
+echo "  scp $(pwd)/$out you@laptop:~/"
