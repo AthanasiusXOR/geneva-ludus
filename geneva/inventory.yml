@@ -8,5 +8,7 @@ all:
         ollama:
           ansible_host: 10.RANGE_NUMBER.10.10
       vars:
-        ansible_user: localuser
-        ansible_password: password
+        # Ludus Debian template default
+        ansible_user: debian
+        ansible_password: debian
+        ansible_become_password: debian

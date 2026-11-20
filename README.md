@@ -1,28 +1,35 @@
 # Reformation Ludus ranges
 
-Ludus host: **reformation**
+**Source of truth for Wittenberg + Geneva.** Keep this repo on your laptop (or any non-Ludus machine). Copy/sync onto reformation when you deploy — don’t treat `/opt/ranges` as the only copy.
 
 | Path | Ludus user | Purpose |
 | --- | --- | --- |
-| [`SETUP.md`](SETUP.md) / [`setup-reformation.sh`](setup-reformation.sh) | — | **Install Ludus + the 5 templates these ranges need** |
-| [`wittenberg/`](wittenberg/) | `WITTENBERG` | Implant / EDR test range (slim) |
+| [`SETUP.md`](SETUP.md) / [`setup-reformation.sh`](setup-reformation.sh) | — | Install Ludus + required templates |
+| [`wittenberg/`](wittenberg/) | `WITTENBERG` | Implant / EDR test range |
 | [`geneva/`](geneva/) | `GENEVA` | Red-team Ollama (`rt-assist`) |
-| `install-all-templates.sh` | — | Optional: install/build *all* BSL templates (heavy) |
+| [`pack-ranges.sh`](pack-ranges.sh) | — | Make a tarball to copy off-box |
 
-## First time on reformation
-
-SSH in as root, copy this repo over, then follow **[SETUP.md](SETUP.md)**. Short version:
+## Get a clean copy (not only on Ludus)
 
 ```bash
-chmod +x setup-reformation.sh
-sudo ./setup-reformation.sh --install          # interactive Ludus installer
-# after install + reboot:
- export LUDUS_API_KEY='…'                      # from ludus-install-status
-./setup-reformation.sh --templates --users
-ludus templates logs -f                        # wait until the five are BUILT
+# From this git remote / Cursor project — clone or pull on your laptop:
+git clone <your-remote-url> reformation-ranges
+cd reformation-ranges
+
+# Or pack from a machine that has the repo:
+./pack-ranges.sh
+# → reformation-ranges-YYYYMMDD.tar.gz
 ```
 
-## Deploy ranges
+Sync onto reformation:
+
+```bash
+rsync -av --delete ./wittenberg/ ./geneva/ ./SETUP.md ./setup-reformation.sh \
+  root@reformation:/opt/ranges/
+# then on reformation, inventories still need ./stamp-range-number.sh
+```
+
+## Deploy (after templates are BUILT)
 
 ```bash
 ludus --user WITTENBERG range config set -f wittenberg/range.yml
@@ -32,4 +39,4 @@ ludus --user GENEVA range config set -f geneva/range.yml
 ludus --user GENEVA range deploy
 ```
 
-On ~60 GB RAM: keep Wittenberg on **one target cell** while Geneva’s 16 GB Ollama box is up. Details in each directory’s README.
+Then Ansible post-config inside each folder (see each README). Wittenberg: one target cell + attack stack while Geneva’s 16 GB Ollama is up.
