@@ -1,50 +1,43 @@
-# Setup Ludus on Reformation
+# Setup Ludus on Wittenberg
 
-You must run this **on the reformation host** (SSH as root). This environment cannot install Ludus for you remotely.
+Run these steps **on the Wittenberg host** (SSH as root). Fresh Debian 12/13 box with nested virt if it is a VM, large disk, ~60 GB+ RAM.
 
-Ludus takes over the machine (Proxmox). Use a dedicated Debian 12/13 box with nested virtualization if it is a VM, plenty of disk, and your ~60 GB RAM.
+## Templates GENEVA needs
 
-## Templates these ranges need
-
-| Template | Used by |
+| Template | Used for |
 | --- | --- |
-| `debian-13-x64-server-template` | Geneva (Ollama) |
-| `win2022-server-x64-template` | Wittenberg |
-| `win11-22h2-x64-enterprise-template` | Wittenberg |
-| `ubuntu-22.04-x64-server-template` | Wittenberg (from BSL source) |
-| `kali-x64-desktop-template` | Wittenberg |
+| `win2022-server-x64-template` | GOAD + winattack |
+| `ubuntu-22.04-x64-server-template` | redirs, C2, teamshare, ansible (BSL source) |
+| `kali-x64-desktop-template` | linattack1 |
 
-Do **not** build all 27 templates — only these five.
+Do **not** build every Packer template — only these three.
 
-## Option A — helper script (recommended)
-
-Copy this repo onto reformation, then:
+## Option A — helper script
 
 ```bash
-cd /path/to/this/repo
-chmod +x setup-reformation.sh
+cd /opt/ranges   # or wherever you synced this repo
+chmod +x setup-wittenberg.sh
 
-# 1) Install Ludus (interactive; set node name to reformation)
-sudo ./setup-reformation.sh --install
+# 1) Install Ludus (interactive; set node name to wittenberg)
+sudo ./setup-wittenberg.sh --install
 
-# After reboot / when ludus-install-status says ready:
+# After reboot / when ready:
 sudo ludus-install-status
 # Copy the admin API key, then:
  export LUDUS_API_KEY='ADMIN-OR-ROOT-KEY'
 
-# 2) Install ubuntu from BSL source + build the five templates
-./setup-reformation.sh --templates
-# optional: ./setup-reformation.sh --templates --parallel 2
+# 2) Ubuntu from BSL + build the three templates
+./setup-wittenberg.sh --templates
 ludus templates logs -f
 
-# 3) Create range users
-./setup-reformation.sh --users
+# 3) Create GENEVA user
+./setup-wittenberg.sh --users
 ```
 
-Or one shot after Ludus is already installed and `LUDUS_API_KEY` is set:
+One shot after Ludus is installed and `LUDUS_API_KEY` is set:
 
 ```bash
-./setup-reformation.sh --templates --users
+./setup-wittenberg.sh --templates --users
 ```
 
 ## Option B — manual commands
@@ -55,62 +48,70 @@ Or one shot after Ludus is already installed and `LUDUS_API_KEY` is set:
 su -
 apt update && apt install -y curl sudo ca-certificates jq
 curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
-# Accept EULA; set node name to reformation; fix public IP if prompted
+# Accept EULA; set node name to wittenberg; fix public IP if prompted
 # Reboot if asked, then:
 ludus-install-status
  export LUDUS_API_KEY='…'
 ```
 
-### 2. Pull ubuntu template from Sources + build five
+### 2. Templates
 
 ```bash
-# BSL source is usually pre-registered; install ubuntu into your catalog
 ludus source add ludus-source-bsl --templates ubuntu-22.04-x64-server-template
-# if that source id differs:
-# ludus source list
-# ludus source add https://github.com/badsectorlabs/ludus-source-bsl --templates ubuntu-22.04-x64-server-template
+# if source id differs: ludus source list
 
-ludus templates list
-
-ludus templates build -n debian-13-x64-server-template,win2022-server-x64-template,win11-22h2-x64-enterprise-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
-
+ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
 ludus templates logs -f
-# Stuck?  ludus templates abort
+# Stuck DHCP?  ludus templates abort
+# then: systemctl restart dnsmasq   (or the Ludus dnsmasq unit) and rebuild the stuck one
 ```
 
-### 3. Create Wittenberg + Geneva users
+### 3. Create GENEVA user
 
 ```bash
-ludus user add -n 'Wittenberg' -i WITTENBERG
 ludus user add -n 'Geneva' -i GENEVA
-# Save both API keys
+# Save the API key
 ```
 
-### 4. Deploy ranges (after all five templates show BUILT)
+### 4. Deploy GENEVA (after templates show BUILT)
 
 ```bash
-ludus --user WITTENBERG range config set -f wittenberg/range.yml
-ludus --user WITTENBERG range deploy
-ludus --user WITTENBERG range logs -f
-
-ludus --user GENEVA range config set -f geneva/range.yml
+ludus --user GENEVA range config set -f /opt/ranges/geneva/range.yml
+# or: -f geneva/range.yml from a checkout
 ludus --user GENEVA range deploy
 ludus --user GENEVA range logs -f
 ```
 
-Then Ansible post-config in each folder (`./stamp-range-number.sh` → `ansible-playbook deploy-range.yml`). See `wittenberg/README.md` and `geneva/README.md`.
+### 5. Stamp inventories + optional Ansible
+
+```bash
+cd /opt/ranges/geneva
+RANGENUMBER=$(ludus --user GENEVA range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
+export RANGENUMBER
+./stamp-range-number.sh
+
+# optional Kali notes / SSH key:
+ansible-playbook deploy-range.yml --limit linattack
+```
 
 ## Verify
 
 ```bash
-ludus templates list
-# All five should show BUILT / TRUE
-
-ludus user list
-# WITTENBERG and GENEVA present
-
-free -h   # leave headroom: Wittenberg one cell ~28G + Geneva ~16G
+ludus templates list   # three templates BUILT
+ludus user list        # GENEVA present
+ludus --user GENEVA range list
+free -h
 ```
+
+## Creds (lab defaults)
+
+| System | User | Pass |
+| --- | --- | --- |
+| Kali | kali | kali |
+| Ubuntu | localuser | password |
+| GOAD domainadmin | domainadmin | password |
+
+Microsoft Defender Antivirus is **on** for GOAD Windows VMs. Cloud MDE console needs your tenant onboarding package separately.
 
 ## Docs
 

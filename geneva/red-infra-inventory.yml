@@ -1,10 +1,10 @@
 ---
-# Wittenberg operator / C2 / redirector inventory (attack1 only).
-# Stamp RANGE_NUMBER with ./stamp-range-number.sh
+# GENEVA operator / C2 / redirector inventory
 all:
   vars:
     ansible_user: localuser
     ansible_password: password
+    ansible_ssh_pass: password
 
 services:
   hosts:
@@ -16,30 +16,16 @@ services:
 c2_servers:
   hosts:
     c2server0:
-      alias: cs0
       ansible_host: 10.RANGE_NUMBER.30.10
     c2server1:
-      alias: my1
       ansible_host: 10.RANGE_NUMBER.30.11
-
-cobaltstrike:
-  hosts:
-    c2server0:
-
-mythic:
-  hosts:
-    c2server1:
 
 redirectors:
   hosts:
     redir-e1-0:
       ansible_host: 10.RANGE_NUMBER.20.10
-      redirect_to: 10.RANGE_NUMBER.30.10:443
-      redirect_listen_port: 443
     redir-w1-0:
       ansible_host: 10.RANGE_NUMBER.20.20
-      redirect_to: 10.RANGE_NUMBER.30.11:443
-      redirect_listen_port: 443
 
 linattack:
   hosts:
@@ -48,6 +34,7 @@ linattack:
   vars:
     ansible_user: kali
     ansible_password: kali
+    ansible_ssh_pass: kali
     ansible_become_password: kali
 
 winattack:
@@ -58,9 +45,26 @@ winattack:
     ansible_user: localuser
     ansible_password: password
     ansible_winrm_server_cert_validation: ignore
-    become_method: runas
-    ansible_become_user: localuser
-    ansible_become_password: password
   hosts:
     winattack1:
       ansible_host: 10.RANGE_NUMBER.30.31
+
+goad:
+  hosts:
+    GENEVA-DC01:
+      ansible_host: 10.RANGE_NUMBER.10.10
+    GENEVA-DC02:
+      ansible_host: 10.RANGE_NUMBER.10.11
+    GENEVA-SRV02:
+      ansible_host: 10.RANGE_NUMBER.10.12
+    GENEVA-DC03:
+      ansible_host: 10.RANGE_NUMBER.10.13
+    GENEVA-SRV03:
+      ansible_host: 10.RANGE_NUMBER.10.14
+  vars:
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_port: 5986
+    ansible_user: domainadmin
+    ansible_password: password
+    ansible_winrm_server_cert_validation: ignore

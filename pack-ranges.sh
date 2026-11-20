@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# Pack Wittenberg + Geneva (+ setup helpers) into a tarball for an off-Ludus copy.
+# Pack GENEVA range + Wittenberg setup helpers into a tarball.
 set -euo pipefail
 cd "$(dirname "$0")"
 stamp="$(date +%Y%m%d)"
-out="reformation-ranges-${stamp}.tar.gz"
+out="wittenberg-geneva-${stamp}.tar.gz"
 
 tar -czf "$out" \
-  --exclude='wittenberg/inventory.yml.bak' \
+  --exclude='geneva/inventory.yml.bak' \
   --exclude='*/__pycache__' \
   --exclude='*.retry' \
+  --exclude='wittenberg-geneva-*.tar.gz' \
   --exclude='reformation-ranges-*.tar.gz' \
   README.md SETUP.md \
-  setup-reformation.sh install-all-templates.sh pack-ranges.sh \
-  wittenberg geneva
+  setup-wittenberg.sh install-all-templates.sh pack-ranges.sh \
+  geneva
 
 echo "Wrote $(pwd)/$out"
 ls -lh "$out"

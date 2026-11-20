@@ -1,4 +1,5 @@
-reformation-ranges-*.tar.gz
+*.tar.gz
 *.retry
 __pycache__/
-.DS_Store
+.inventory.yml.bak
+geneva/inventory.yml.bak

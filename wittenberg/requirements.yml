@@ -1,6 +1,0 @@
----
-collections:
-  - name: microsoft.ad
-  - name: community.windows
-  - name: ansible.windows
-  - name: community.general

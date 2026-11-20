@@ -1,53 +1,37 @@
-# Geneva — red-team Ollama range
+# GENEVA range
 
-Ludus host: **reformation** · User: **GENEVA** · Sibling: [`../wittenberg/`](../wittenberg/)
+Ludus host: **wittenberg** (Debian base)  
+Ludus user: **GENEVA**
 
-## After Ludus range deploy finishes
+Red-team attack infra + **GOAD** targets, with **Microsoft Defender Antivirus enabled** (no `disable_defender` GPOs).
+
+| VLAN | Contents |
+| --- | --- |
+| 10 | GOAD (kingslanding, winterfell, castelblack, meereen, braavos) |
+| 20 | Redirectors |
+| 30 | Kali, winattack, C2s, teamshare |
+| 40 | Ansible |
+
+Config: **`range.yml`**
+
+From-scratch Ludus install + deploy: see [`../SETUP.md`](../SETUP.md).
+
+## Creds (lab defaults)
+
+| Host | User | Pass |
+| --- | --- | --- |
+| Kali (`linattack1`) | kali | kali |
+| Debian/Ubuntu | localuser / debian | password / debian |
+| GOAD domainadmin | domainadmin | password |
+
+Cloud MDE (tenant EDR) still needs your onboarding package if you want cloud console — Defender AV is already on without it.
+
+## After Ludus deploy
 
 ```bash
-cd /opt/ranges/geneva   # or your checkout
-
- export LUDUS_API_KEY='GENEVA.…'   # or use ludus --user GENEVA …
+cd geneva
+RANGENUMBER=$(ludus --user GENEVA range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
 ./stamp-range-number.sh
-
-ansible-galaxy collection install -r requirements.yml
-ansible-playbook deploy-range.yml
-# pulls model + creates rt-assist — can take a long time on CPU
+# optional:
+ansible-playbook deploy-range.yml --limit linattack
 ```
-
-Smoke test (from WireGuard / lab):
-
-```bash
-curl http://10.<GENEVA_RANGE#>.10.10:11434/api/tags
-```
-
-## Then cut it off from the internet
-
-**1. Guest iptables lockdown** (blocks outbound from the VM):
-
-```bash
-ansible-playbook deploy-lockdown.yml
-```
-
-**2. Ludus router lockdown** (block_internet + reject external):
-
-```bash
-ludus --user GENEVA range config set -f range.lockdown.yml
-ludus --user GENEVA range deploy
-ludus --user GENEVA range logs -f
-```
-
-**3. Verify**
-
-```bash
-# On the ollama VM (console/SSH) — should FAIL:
-curl -m 5 -I https://1.1.1.1
-
-# From your WG client — should WORK:
-curl http://10.<GENEVA_RANGE#>.10.10:11434/api/tags
-```
-
-WireGuard into Geneva still reaches `:11434`. Public internet from that VM should not.
-
-Creds on reformation: **`debian` / `debian`** (`localuser` does not work on this image).  
-Update `wittenberg/group_vars/all.yml` → `geneva_ollama_url` once you know the Geneva range number.

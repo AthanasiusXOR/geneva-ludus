@@ -1,9 +1,7 @@
 ---
-# Post-Ludus configuration for Geneva (Ollama range).
+# Optional post-Ludus config for GENEVA (Kali notes / SSH key).
+# GOAD is provisioned by Ludus roles in range.yml.
 #
-#   ansible-galaxy collection install -r requirements.yml
-#   ansible-playbook deploy-range.yml          # install + pull models (needs internet)
-#   ansible-playbook deploy-lockdown.yml       # AFTER pull — cut guest egress
-#   then: ludus --user GENEVA range config set -f range.lockdown.yml && deploy
+#   ansible-playbook deploy-range.yml --limit linattack
 #
-- import_playbook: deploy-ollama.yml
+- import_playbook: deploy-lin.yml

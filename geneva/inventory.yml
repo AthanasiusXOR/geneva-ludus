@@ -1,17 +1,95 @@
 ---
-# Geneva Ansible inventory (Ollama range).
-# Stamp RANGE_NUMBER: ./stamp-range-number.sh
-#
-# Ludus debian-13 on reformation: debian / debian (localuser does NOT work here)
+# GENEVA range inventory (GOAD + red infra)
+# Stamp range number after deploy:
+#   RANGENUMBER=1 ./stamp-range-number.sh
 all:
   children:
-    ollama_hosts:
-      hosts:
-        ollama:
-          ansible_host: 10.RANGE_NUMBER.10.10
+    goad_windows:
+      children:
+        goad_dcs:
+          hosts:
+            GENEVA-DC01:
+              ansible_host: 10.RANGE_NUMBER.10.10
+              hostname_friendly: kingslanding
+            GENEVA-DC02:
+              ansible_host: 10.RANGE_NUMBER.10.11
+              hostname_friendly: winterfell
+            GENEVA-DC03:
+              ansible_host: 10.RANGE_NUMBER.10.13
+              hostname_friendly: meereen
+        goad_servers:
+          hosts:
+            GENEVA-SRV02:
+              ansible_host: 10.RANGE_NUMBER.10.12
+              hostname_friendly: castelblack
+            GENEVA-SRV03:
+              ansible_host: 10.RANGE_NUMBER.10.14
+              hostname_friendly: braavos
       vars:
-        ansible_user: debian
-        ansible_password: debian
-        ansible_ssh_pass: debian
-        ansible_become_password: debian
-        ansible_become_pass: debian
+        ansible_connection: winrm
+        ansible_winrm_transport: ntlm
+        ansible_port: 5986
+        ansible_user: domainadmin
+        ansible_password: password
+        ansible_winrm_server_cert_validation: ignore
+
+    attack_space:
+      children:
+        teamshare_hosts:
+          hosts:
+            teamshare:
+              ansible_host: 10.RANGE_NUMBER.30.1
+          vars:
+            ansible_user: localuser
+            ansible_password: password
+            ansible_ssh_pass: password
+        linattack:
+          hosts:
+            linattack1:
+              ansible_host: 10.RANGE_NUMBER.30.21
+          vars:
+            ansible_user: kali
+            ansible_password: kali
+            ansible_ssh_pass: kali
+            ansible_become_password: kali
+        winattack:
+          hosts:
+            winattack1:
+              ansible_host: 10.RANGE_NUMBER.30.31
+          vars:
+            ansible_connection: winrm
+            ansible_winrm_transport: ntlm
+            ansible_port: 5986
+            ansible_user: localuser
+            ansible_password: password
+            ansible_winrm_server_cert_validation: ignore
+        c2_servers:
+          hosts:
+            c2server0:
+              ansible_host: 10.RANGE_NUMBER.30.10
+            c2server1:
+              ansible_host: 10.RANGE_NUMBER.30.11
+          vars:
+            ansible_user: localuser
+            ansible_password: password
+            ansible_ssh_pass: password
+
+    redirectors:
+      hosts:
+        redir-e1-0:
+          ansible_host: 10.RANGE_NUMBER.20.10
+        redir-w1-0:
+          ansible_host: 10.RANGE_NUMBER.20.20
+      vars:
+        ansible_user: localuser
+        ansible_password: password
+        ansible_ssh_pass: password
+
+    ansible_ctrl:
+      hosts:
+        ansible:
+          ansible_host: 10.RANGE_NUMBER.40.1
+      vars:
+        ansible_user: localuser
+        ansible_password: password
+        ansible_ssh_pass: password

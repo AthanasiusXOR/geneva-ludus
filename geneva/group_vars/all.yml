@@ -1,11 +1,14 @@
 ---
 range_name: geneva
 ludus_userid: GENEVA
+ludus_host: wittenberg
 
-# Confirmed on reformation debian-13 template
-local_linux_user: debian
-local_linux_password: debian
+ad_domain_admin: domainadmin
+ad_domain_admin_password: password
+ad_domain_user: domainuser
+ad_domain_user_password: password
 
-ollama_model: huihui_ai/dolphin3-abliterated
-ollama_custom_model: rt-assist
-ollama_listen: "0.0.0.0:11434"
+local_linux_user: localuser
+local_linux_password: password
+kali_user: kali
+kali_password: kali

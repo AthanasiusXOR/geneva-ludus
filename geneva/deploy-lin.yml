@@ -1,0 +1,50 @@
+---
+- name: Configure Kali attack host (linattack1)
+  hosts: linattack
+  become: true
+  vars:
+    lin_user: kali
+    operator_ssh_pubkey: "{{ lookup('file', 'files/lin_key.pub', errors='warn') | default('', true) }}"
+  tasks:
+    - name: Ensure operator home .ssh exists
+      file:
+        path: "/home/{{ lin_user }}/.ssh"
+        state: directory
+        owner: "{{ lin_user }}"
+        group: "{{ lin_user }}"
+        mode: "0700"
+
+    - name: Install operator SSH public key
+      authorized_key:
+        user: "{{ lin_user }}"
+        key: "{{ operator_ssh_pubkey }}"
+        state: present
+      when: operator_ssh_pubkey | length > 0
+
+    - name: Drop operator notes
+      copy:
+        dest: "/home/{{ lin_user }}/RANGE-NOTES.md"
+        owner: "{{ lin_user }}"
+        group: "{{ lin_user }}"
+        mode: "0644"
+        content: |
+          # GENEVA range — operator notes
+
+          Ludus host: wittenberg
+          Ludus user: GENEVA
+
+          ## GOAD (VLAN 10)
+          - kingslanding  10.<RANGE#>10.10  sevenkingdoms.local (DC01)
+          - winterfell    10.<RANGE#>10.11  north.sevenkingdoms.local (DC02)
+          - castelblack   10.<RANGE#>10.12  member + MSSQL/IIS
+          - meereen       10.<RANGE#>10.13  essos.local (DC03)
+          - braavos       10.<RANGE#>10.14  ADCS + MSSQL
+
+          Microsoft Defender Antivirus is ENABLED on GOAD Windows hosts.
+
+          ## Creds (lab defaults)
+          - Kali: kali / kali
+          - GOAD domainadmin: domainadmin / password (sevenkingdoms)
+          - See Orange Cyberdefense GOAD docs for north/essos users
+
+          Replace RANGE_NUMBER with your Ludus range number.
