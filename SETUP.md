@@ -35,13 +35,17 @@ sudo ./setup-wittenberg.sh --install
 sudo ludus-install-status
  export LUDUS_API_KEY='…'   # install/root key for first bootstrap
 
-# 2) Download/build templates + create ATHANASIUS
-./setup-wittenberg.sh --templates --users
-ludus templates logs -f
+# 2) Create ATHANASIUS (if install did not already), THEN switch keys
+./setup-wittenberg.sh --users
+ export LUDUS_API_KEY='…'   # ATHANASIUS key from user add (NOT ROOT, NOT sudo)
 
-# 3) Switch to ATHANASIUS as your root alias
- export LUDUS_API_KEY='…'   # key printed by user add
+# 3) Install Packer defs into ATHANASIUS catalog + build
+./setup-wittenberg.sh --templates
+ludus templates logs -f
 ```
+
+**Do not** `sudo ./setup-wittenberg.sh --templates` — sudo drops `LUDUS_API_KEY` and the script cannot talk to Ludus. Templates are also **per-user**; install them with the ATHANASIUS key so that user owns the catalog.
+
 
 ## Option B — manual
 
@@ -56,10 +60,23 @@ ludus-install-status
  export LUDUS_API_KEY='…'
 ```
 
-### 2. Templates (download defs + Packer build)
+### 2. Templates (install defs into your catalog, then Packer build)
+
+`templates list` stays empty until you **source add** each template for the user behind `LUDUS_API_KEY`. Build alone does not populate the list.
 
 ```bash
+# Confirm key + sources
+echo "key set: ${LUDUS_API_KEY:+yes}"
+ludus source list
+ludus source list ludus-source-bsl --catalog | head
+
+# Install defs (all three — not just ubuntu)
+ludus source add ludus-source-bsl --templates win2022-server-x64-template
 ludus source add ludus-source-bsl --templates ubuntu-22.04-x64-server-template
+ludus source add ludus-source-bsl --templates kali-x64-desktop-template
+
+ludus templates list   # should show three rows (BUILT=false until Packer finishes)
+
 ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
 ludus templates logs -f
 # Stuck DHCP?  ludus templates abort ; restart dnsmasq; rebuild the stuck one
