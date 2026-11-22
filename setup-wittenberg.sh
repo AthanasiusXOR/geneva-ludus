@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Install Ludus on Wittenberg, pull/build Geneva range templates, create ATHANASIUS.
+# Wittenberg bootstrap. Keep this dumb and loud — Ludus 2.2 Sources are picky.
 #
-# ATHANASIUS = your day-to-day Ludus user (API key stands in for root/admin).
-# After creating it, use THAT key as LUDUS_API_KEY for --templates and deploys.
+# Templates are PER-USER and bound to LUDUS_API_KEY.
+# Use the initial admin key from `ludus-install-status` (or ATHANASIUS after --users).
+# NEVER use the ROOT key for templates. NEVER sudo this for --templates/--users.
 set -euo pipefail
 
 PARALLEL=1
@@ -10,30 +11,28 @@ DO_INSTALL=0
 DO_TEMPLATES=0
 DO_USERS=0
 
-TEMPLATES="win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template"
+NEEDED="win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template"
 BSL_URL="https://github.com/badsectorlabs/ludus-source-bsl"
-LUDUS_USER_ID="ATHANASIUS"
-LUDUS_USER_NAME="Athanasius"
 
 usage() {
   cat <<'USAGE'
-Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--parallel N]
+Usage: ./setup-wittenberg.sh [--install] [--users] [--templates] [--parallel N]
 
-  --install     Run Ludus installer (interactive; node name: wittenberg)
-  --templates   Install Packer defs from Sources into THIS user's catalog, then build
-  --users       Create Ludus user ATHANASIUS (use its API key as your root alias)
+  --install     Ludus installer only (node name: wittenberg)
+  --users       Create ATHANASIUS --admin (needs ROOT or admin key + admin API URL)
+  --templates   source add BSL templates into THIS key's catalog, then Packer build
   --parallel N  Packer concurrency (default 1)
 
-IMPORTANT:
-  Do NOT use sudo for --templates / --users (it drops LUDUS_API_KEY).
-  Run as root login shell OR:  export LUDUS_API_KEY='…' && ./setup-wittenberg.sh --templates
+Order that works:
+  1) --install → ludus-install-status → export INITIAL ADMIN key (not ROOT)
+  2) --templates   (or do templates as ATHANASIUS after --users + key switch)
+  3) optional --users if you want ATHANASIUS as a second admin
 
-  Templates are per-user. Prefer ATHANASIUS key (or initial admin), not ROOT,
-  for --templates — ROOT often leaves `ludus templates list` empty for your range user.
-
-Requires LUDUS_API_KEY for --templates / --users.
+No sudo for --users / --templates.
 USAGE
 }
+
+die() { echo "ERROR: $*" >&2; exit 1; }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -42,148 +41,116 @@ while [[ $# -gt 0 ]]; do
     --users) DO_USERS=1; shift ;;
     --parallel) PARALLEL="${2:?}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
-    *) echo "Unknown: $1" >&2; usage; exit 1 ;;
+    *) die "Unknown: $1" ;;
   esac
 done
 
-if [[ $DO_INSTALL -eq 0 && $DO_TEMPLATES -eq 0 && $DO_USERS -eq 0 ]]; then
-  usage
-  exit 1
-fi
+[[ $DO_INSTALL -eq 1 || $DO_TEMPLATES -eq 1 || $DO_USERS -eq 1 ]] || { usage; exit 1; }
 
 if [[ $DO_INSTALL -eq 1 ]]; then
-  echo "==> Installing Ludus (set node name to wittenberg when prompted)"
+  echo "==> Installing Ludus (node name: wittenberg)"
   apt update
   apt install -y curl sudo ca-certificates jq
   curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
-  echo "If reboot required, reboot, then: sudo ludus-install-status"
-  echo " export LUDUS_API_KEY='…'  then re-run: ./setup-wittenberg.sh --users"
-  echo "Then switch to ATHANASIUS key and: ./setup-wittenberg.sh --templates"
+  echo
+  echo "Next:"
+  echo "  sudo ludus-install-status"
+  echo "  # copy the INITIAL ADMIN API key (userID.…), NOT the ROOT key"
+  echo "  export LUDUS_API_KEY='…'"
+  echo "  ./setup-wittenberg.sh --templates"
 fi
 
-need_key() {
-  if [[ -z "${LUDUS_API_KEY:-}" ]]; then
-    echo "ERROR: LUDUS_API_KEY is not set in this shell." >&2
-    echo "  If you used sudo, the key was dropped. Run without sudo:" >&2
-    echo "    export LUDUS_API_KEY='YOURKEY'" >&2
-    echo "    ./setup-wittenberg.sh --templates" >&2
-    exit 1
-  fi
-  command -v ludus >/dev/null || { echo "ludus CLI not on PATH" >&2; exit 1; }
-
-  # Key format is USERID.secret — show which user this shell will act as
+need_cli_key() {
+  command -v ludus >/dev/null || die "ludus not on PATH"
+  [[ -n "${LUDUS_API_KEY:-}" ]] || die "LUDUS_API_KEY unset. export it in THIS shell (no sudo)."
   local prefix="${LUDUS_API_KEY%%.*}"
-  echo "==> LUDUS_API_KEY present (user prefix: ${prefix})"
+  echo "==> Acting as Ludus user prefix: ${prefix}"
   if [[ "$prefix" == "ROOT" ]]; then
-    echo "WARNING: You are using the ROOT key. Templates are per-user."
-    echo "  Create/use ATHANASIUS first, then export THAT key and re-run --templates."
+    die "ROOT key cannot own a template catalog. Use the initial admin key from ludus-install-status, or ATHANASIUS after --users."
   fi
-}
-
-resolve_bsl() {
-  local list
-  list="$(ludus source list 2>/dev/null || true)"
-  if grep -Eqo 'ludus-source-bsl' <<<"$list"; then
-    printf '%s\n' 'ludus-source-bsl'
-    return
-  fi
-  # Try any id containing bsl
-  local id
-  id="$(awk '/bsl|badsectorlabs/ {for (i=1;i<=NF;i++) if ($i ~ /bsl|badsectorlabs/) {gsub(/[|+]/,"",$i); print $i; exit}}' <<<"$list")"
-  if [[ -n "${id:-}" ]]; then
-    printf '%s\n' "$id"
-    return
-  fi
-  printf '%s\n' "$BSL_URL"
-}
-
-install_one_template() {
-  local target="$1"
-  local name="$2"
-  echo "---- source add $target --templates $name"
-  if ludus source add "$target" --templates "$name"; then
-    return 0
-  fi
-  echo "     first target failed; trying URL $BSL_URL"
-  ludus source add "$BSL_URL" --templates "$name"
 }
 
 if [[ $DO_USERS -eq 1 ]]; then
-  need_key
-  if ludus user list 2>/dev/null | grep -q "$LUDUS_USER_ID"; then
-    echo "User $LUDUS_USER_ID already exists — export its API key for --templates:"
-    echo "  LUDUS_API_KEY='ROOT…' ludus user apikey --user $LUDUS_USER_ID"
-    echo "  export LUDUS_API_KEY='…'"
+  need_cli_key
+  if ludus user list 2>/dev/null | grep -q ATHANASIUS; then
+    echo "ATHANASIUS already exists"
+    ludus user list
   else
-    echo "==> Creating user $LUDUS_USER_ID (save the API key — this is your root alias)"
-    # ROOT key talks to admin API on 8081; --admin so this user can build templates
-    ludus user add \
-      --name "$LUDUS_USER_NAME" \
-      --userid "$LUDUS_USER_ID" \
-      --admin \
-      --url https://127.0.0.1:8081
+    echo "==> Creating ATHANASIUS (admin)"
+    set +e
+    out="$(ludus user add --name 'Athanasius' --userid ATHANASIUS --admin --url https://127.0.0.1:8081 2>&1)"
+    rc=$?
+    set -e
+    echo "$out"
+    [[ $rc -eq 0 ]] || die "user add failed (rc=$rc). Are you using an admin/ROOT-capable key?"
     echo
-    echo "Put the printed key in your shell:"
-    echo "  export LUDUS_API_KEY='…'"
+    echo "Export the ATHANASIUS API key from the table above, then run --templates with THAT key."
   fi
-  ludus user list
 fi
 
 if [[ $DO_TEMPLATES -eq 1 ]]; then
-  need_key
+  need_cli_key
 
-  echo "==> Sources:"
-  ludus source list
+  echo "==> source list"
+  ludus source list || true
   echo
 
-  bsl_target="$(resolve_bsl)"
-  echo "==> Installing Packer defs into catalog for this API key user from: $bsl_target"
-
-  IFS=',' read -ra tmpl_arr <<< "$TEMPLATES"
-  for t in "${tmpl_arr[@]}"; do
-    t="${t// /}"
-    if ludus templates list 2>/dev/null | grep -Fq "$t"; then
-      echo "  already in catalog: $t"
-      continue
+  # Prefer short id if present; else URL. Fresh hosts auto-register BSL for admins.
+  bsl="ludus-source-bsl"
+  if ! ludus source list 2>/dev/null | grep -Eq 'ludus-source-bsl'; then
+    # user-prefixed id, e.g. JD-badsectorlabs-ludus-source-bsl
+    alt="$(ludus source list 2>/dev/null | awk '/ludus-source-bsl|badsectorlabs/ {for(i=1;i<=NF;i++) if($i~/ludus-source-bsl|badsectorlabs/){gsub(/[|+]/,"",$i); print $i; exit}}' || true)"
+    if [[ -n "${alt:-}" ]]; then
+      bsl="$alt"
+    else
+      bsl="$BSL_URL"
     fi
-    install_one_template "$bsl_target" "$t"
-  done
+  fi
+
+  echo "==> Installing template defs into THIS user's catalog"
+  echo "    target: $bsl"
+  echo "    names:  $NEEDED"
+  # Comma-separated --templates is supported by Ludus Sources CLI
+  set +e
+  ludus source add "$bsl" --templates "$NEEDED"
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
+    echo "short-id/path failed (rc=$rc); trying GitHub URL + --templates"
+    ludus source add "$BSL_URL" --templates "$NEEDED"
+    rc=$?
+  fi
+  if [[ $rc -ne 0 ]]; then
+    echo "specific templates failed; falling back to --all from BSL"
+    ludus source add "$bsl" --all || ludus source add "$BSL_URL" --all
+    rc=$?
+  fi
+  set -e
+  [[ $rc -eq 0 ]] || die "source add failed completely"
 
   echo
-  echo "==> Catalog after source add:"
-  ludus templates list || true
+  echo "==> templates list (must be non-empty)"
+  ludus templates list
+  if ! ludus templates list 2>/dev/null | grep -Eq 'win2022|kali|ubuntu-22.04'; then
+    die "Catalog still empty/missing needed templates. Paste output of: ludus source list ; ludus templates list ; echo key=\${LUDUS_API_KEY%%.*}"
+  fi
 
-  missing=0
-  for t in "${tmpl_arr[@]}"; do
-    t="${t// /}"
-    if ! ludus templates list 2>/dev/null | grep -Fq "$t"; then
-      echo "MISSING: $t" >&2
-      missing=1
-    fi
-  done
-  if [[ "$missing" -ne 0 ]]; then
-    echo >&2
-    echo "ERROR: source add did not populate templates list." >&2
-    echo "Fix checklist:" >&2
-    echo "  1) Same shell: echo \"\${LUDUS_API_KEY:0:20}…\"   # must show USERID. prefix" >&2
-    echo "  2) Do not use sudo for this script" >&2
-    echo "  3) Prefer ATHANASIUS key (not ROOT) for template installs" >&2
-    echo "  4) Manual retry:" >&2
-    echo "       ludus source add ludus-source-bsl --templates win2022-server-x64-template" >&2
-    echo "       ludus source add ludus-source-bsl --templates ubuntu-22.04-x64-server-template" >&2
-    echo "       ludus source add ludus-source-bsl --templates kali-x64-desktop-template" >&2
-    echo "       ludus templates list" >&2
-    exit 1
+  # Ensure ubuntu is present even if --all defaults omitted it somehow
+  if ! ludus templates list 2>/dev/null | grep -Fq 'ubuntu-22.04-x64-server-template'; then
+    echo "==> ubuntu-22.04 missing from catalog; adding explicitly"
+    ludus source add "$bsl" --templates ubuntu-22.04-x64-server-template \
+      || ludus source add "$BSL_URL" --templates ubuntu-22.04-x64-server-template
   fi
 
   echo
-  echo "==> Building Packer images: $TEMPLATES (parallel=$PARALLEL)"
+  echo "==> Packer build: $NEEDED"
   if (( PARALLEL > 1 )); then
-    ludus templates build -n "$TEMPLATES" --parallel "$PARALLEL"
+    ludus templates build -n "$NEEDED" --parallel "$PARALLEL"
   else
-    ludus templates build -n "$TEMPLATES"
+    ludus templates build -n "$NEEDED"
   fi
-  echo "Follow with: ludus templates logs -f"
+  echo
+  echo "Watch:  ludus templates logs -f"
+  echo "Status: ludus templates list"
 fi
 
 echo "Done."

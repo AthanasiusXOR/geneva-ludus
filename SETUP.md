@@ -1,131 +1,92 @@
 # Setup Ludus on Wittenberg
 
-Run on the **Wittenberg** host (SSH as root). Fresh Debian 12/13, nested virt if a VM, large disk, ~60 GB+ RAM.
+## Stop — if templates are empty right now
 
-**Ludus user:** `ATHANASIUS` — create it once, then use its API key as your standing alias for the root/admin key.
-
-## Does `setup-wittenberg.sh` download templates?
-
-**Yes, with `--templates`.** That flag:
-
-1. **Installs** Packer template definitions from Ludus Sources (`source add` — pulls ubuntu-22.04 from BSL if missing).
-2. **Builds** the three images via Packer (`templates build`) — Packer downloads ISOs and creates the templates. This is the long step; watch with `ludus templates logs -f`.
-
-`--install` only installs Ludus. `--users` only creates ATHANASIUS. Neither of those builds templates by itself.
-
-## Templates Geneva needs
-
-| Template | Used for |
-| --- | --- |
-| `win2022-server-x64-template` | GOAD + winattack |
-| `ubuntu-22.04-x64-server-template` | redirs, C2, teamshare, ansible (BSL source) |
-| `kali-x64-desktop-template` | linattack1 |
-
-Only these three — do not build the whole catalog unless you want to.
-
-## Option A — helper script
-
-```bash
-cd /opt/ranges
-chmod +x setup-wittenberg.sh
-
-# 1) Install Ludus (node name: wittenberg)
-sudo ./setup-wittenberg.sh --install
-# reboot if asked
-sudo ludus-install-status
- export LUDUS_API_KEY='…'   # install/root key for first bootstrap
-
-# 2) Create ATHANASIUS (if install did not already), THEN switch keys
-./setup-wittenberg.sh --users
- export LUDUS_API_KEY='…'   # ATHANASIUS key from user add (NOT ROOT, NOT sudo)
-
-# 3) Install Packer defs into ATHANASIUS catalog + build
-./setup-wittenberg.sh --templates
-ludus templates logs -f
-```
-
-**Do not** `sudo ./setup-wittenberg.sh --templates` — sudo drops `LUDUS_API_KEY` and the script cannot talk to Ludus. Templates are also **per-user**; install them with the ATHANASIUS key so that user owns the catalog.
-
-
-## Option B — manual
-
-### 1. Install Ludus
+The helper script is optional. Do this **by hand** with the **initial admin** key (the one user you already see in `ludus user list`), **not ROOT**, **no sudo**:
 
 ```bash
 su -
-apt update && apt install -y curl sudo ca-certificates jq
-curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
-# node name: wittenberg
 ludus-install-status
- export LUDUS_API_KEY='…'
+# Copy "API key for user <ADMIN>:"  →  looks like  ADMINID.xxxxx
+# Do NOT use the ROOT key for templates.
+
+exit   # back to a normal shell is fine if that shell has the key
+ export LUDUS_API_KEY='ADMINID.…'     # leading space = no shell history
+
+# Sanity
+echo "acting as: ${LUDUS_API_KEY%%.*}"
+ludus user list
+ludus source list
+ludus templates list
 ```
 
-### 2. Templates (install defs into your catalog, then Packer build)
+### If `templates list` already shows win2022 / kali / debian rows
 
-`templates list` stays empty until you **source add** each template for the user behind `LUDUS_API_KEY`. Build alone does not populate the list.
+Skip install — just build:
 
 ```bash
-# Confirm key + sources
-echo "key set: ${LUDUS_API_KEY:+yes}"
-ludus source list
-ludus source list ludus-source-bsl --catalog | head
-
-# Install defs (all three — not just ubuntu)
-ludus source add ludus-source-bsl --templates win2022-server-x64-template
 ludus source add ludus-source-bsl --templates ubuntu-22.04-x64-server-template
-ludus source add ludus-source-bsl --templates kali-x64-desktop-template
-
-ludus templates list   # should show three rows (BUILT=false until Packer finishes)
-
 ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
 ludus templates logs -f
-# Stuck DHCP?  ludus templates abort ; restart dnsmasq; rebuild the stuck one
 ```
 
-### 3. Create ATHANASIUS (root API alias)
+### If `templates list` is empty
+
+Install defs into **this** user’s catalog, then build:
 
 ```bash
-# Use the ROOT key from ludus-install-status for this one command:
- export LUDUS_API_KEY='ROOT.…'
-ludus user add --name 'Athanasius' --userid ATHANASIUS --admin --url https://127.0.0.1:8081
-# Save the printed API key — use it from now on instead of ROOT
- export LUDUS_API_KEY='ATHANASIUS.…'
-ludus user list
+ludus source list
+# Use the BSL id you see (often ludus-source-bsl). If missing, use the URL.
+
+ludus source add ludus-source-bsl --templates win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+# if that errors:
+ludus source add https://github.com/badsectorlabs/ludus-source-bsl --templates win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+# nuclear option (installs everything in BSL):
+# ludus source add ludus-source-bsl --all
+
+ludus templates list    # must show the three names
+ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+ludus templates logs -f
 ```
 
-### 4. Deploy Geneva range
+### Why ROOT / sudo / ATHANASIUS-without-catalog fail
+
+| Mistake | Result |
+| --- | --- |
+| `LUDUS_API_KEY=ROOT.…` | Empty or useless template catalog |
+| `sudo ./setup-…` | Key not passed → silent/no-op |
+| Created ATHANASIUS but never `source add` under **that** key | Empty list for ATHANASIUS |
+
+Built Packer images are shared host-wide by name; **defs** in `templates list` are per API-key user.
+
+---
+
+## Optional: ATHANASIUS as second admin
+
+Only after you can `templates list` as the install admin (or you accept building under ATHANASIUS after a fresh `source add`):
+
+```bash
+# Needs a key that can hit admin API (ROOT or existing admin):
+ludus user add --name 'Athanasius' --userid ATHANASIUS --admin --url https://127.0.0.1:8081
+ export LUDUS_API_KEY='ATHANASIUS.…'
+ludus source add ludus-source-bsl --templates win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+```
+
+Geneva range deploy (after templates show BUILT):
 
 ```bash
 ludus --user ATHANASIUS range config set -f /opt/ranges/geneva/range.yml
-ludus --user ATHANASIUS range deploy
-ludus --user ATHANASIUS range logs -f
+# or without --user if LUDUS_API_KEY is already ATHANASIUS:
+ludus range config set -f /opt/ranges/geneva/range.yml
+ludus range deploy
+ludus range logs -f
 ```
 
-### 5. Stamp inventories + optional Ansible
+## Templates Geneva needs
 
-```bash
-cd /opt/ranges/geneva
-RANGENUMBER=$(ludus --user ATHANASIUS range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
-export RANGENUMBER
-./stamp-range-number.sh
-ansible-playbook deploy-range.yml --limit linattack   # optional
-```
-
-## Verify
-
-```bash
-ludus templates list              # three BUILT
-ludus user list                   # ATHANASIUS
-ludus --user ATHANASIUS range list
-free -h
-```
-
-## Creds (lab defaults)
-
-| System | User | Pass |
-| --- | --- | --- |
-| Kali | kali | kali |
-| Ubuntu | localuser | password |
-| GOAD domainadmin | domainadmin | password |
-
-Defender AV is on for GOAD Windows. Cloud MDE still needs your tenant onboarding package if you want the cloud console.
+| Template |
+| --- |
+| `win2022-server-x64-template` |
+| `ubuntu-22.04-x64-server-template` |
+| `kali-x64-desktop-template` |
