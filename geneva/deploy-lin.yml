@@ -31,7 +31,7 @@
           # Geneva range — operator notes
 
           Ludus host: wittenberg
-          Ludus user: ATHANASIUS  (API key = root alias)
+          Ludus user: admin  (API key = root alias)
 
           ## GOAD (VLAN 10)
           - kingslanding  10.<RANGE#>.10.10  sevenkingdoms.local (DC01)

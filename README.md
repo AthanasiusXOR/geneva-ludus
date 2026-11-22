@@ -3,15 +3,14 @@
 | Name | What |
 | --- | --- |
 | **wittenberg** | Debian Ludus host |
-| **geneva/** | Range pack — GOAD + red infra, Defender ON |
-| **ATHANASIUS** | Optional second admin / range owner |
-
-**Read [`SETUP.md`](SETUP.md) first.** Template installs are per API-key user. Use the **initial admin** key from `ludus-install-status`, not ROOT, and do not `sudo` template commands.
+| **admin** | Ludus user / `LUDUS_API_KEY=admin.…` |
+| **geneva/** | GOAD + red infra, Defender ON |
 
 ```bash
- export LUDUS_API_KEY='ADMINID.…'   # from ludus-install-status
-ludus source add ludus-source-bsl --templates win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
-ludus templates list
-ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+su -
+export LUDUS_API_KEY='admin.…'
+./setup-wittenberg.sh --templates
 ludus templates logs -f
 ```
+
+See [`SETUP.md`](SETUP.md).

@@ -1,6 +1,6 @@
 ---
 # Geneva range inventory (GOAD + red infra)
-# Owned by Ludus user ATHANASIUS → GOAD VMs are ATHANASIUS-DC01, …
+# Owned by Ludus user admin → GOAD VMs are admin-DC01, …
 # Stamp range number after deploy:
 #   RANGENUMBER=1 ./stamp-range-number.sh
 all:
@@ -9,21 +9,21 @@ all:
       children:
         goad_dcs:
           hosts:
-            ATHANASIUS-DC01:
+            admin-DC01:
               ansible_host: 10.RANGE_NUMBER.10.10
               hostname_friendly: kingslanding
-            ATHANASIUS-DC02:
+            admin-DC02:
               ansible_host: 10.RANGE_NUMBER.10.11
               hostname_friendly: winterfell
-            ATHANASIUS-DC03:
+            admin-DC03:
               ansible_host: 10.RANGE_NUMBER.10.13
               hostname_friendly: meereen
         goad_servers:
           hosts:
-            ATHANASIUS-SRV02:
+            admin-SRV02:
               ansible_host: 10.RANGE_NUMBER.10.12
               hostname_friendly: castelblack
-            ATHANASIUS-SRV03:
+            admin-SRV03:
               ansible_host: 10.RANGE_NUMBER.10.14
               hostname_friendly: braavos
       vars:
