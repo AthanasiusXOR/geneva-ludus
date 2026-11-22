@@ -85,9 +85,12 @@ ludus templates logs -f
 ### 3. Create ATHANASIUS (root API alias)
 
 ```bash
-ludus user add -n 'Athanasius' -i ATHANASIUS
-# Save the API key — use it from now on instead of the install root key
- export LUDUS_API_KEY='…'
+# Use the ROOT key from ludus-install-status for this one command:
+ export LUDUS_API_KEY='ROOT.…'
+ludus user add --name 'Athanasius' --userid ATHANASIUS --admin --url https://127.0.0.1:8081
+# Save the printed API key — use it from now on instead of ROOT
+ export LUDUS_API_KEY='ATHANASIUS.…'
+ludus user list
 ```
 
 ### 4. Deploy Geneva range
