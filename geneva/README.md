@@ -1,13 +1,7 @@
 # Geneva range
 
-Ludus host: **wittenberg**  
-Ludus **userid:** `AD` (API key `AD.…`)  
-Shell alias: `administrator` (exports that key)
+Ludus userid: **AD** · alias: `administrator`
 
-Config: **`range.yml`** — GOAD + Kali/C2/redirs. GOAD VMs: `AD-DC01`, etc.
+Deploy file: **`range.yml`**
 
-```bash
-administrator
-ludus range config set -f range.yml
-ludus range deploy
-```
+Full command list: [`../SETUP.md`](../SETUP.md)

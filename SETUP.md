@@ -1,38 +1,109 @@
-# Setup Ludus on Wittenberg
+# Wittenberg — manual Ludus commands (user AD already exists)
 
-| | |
-| --- | --- |
-| Ludus **userid** | `AD` (API key prefix) |
-| Shell **alias** | `administrator` → `export LUDUS_API_KEY='AD.…'` |
+Shell alias `administrator` exports `LUDUS_API_KEY='AD.…'`.  
+Range pack: `/opt/ranges/geneva/` (this repo’s `geneva/`).
 
-```bash
-alias administrator="export LUDUS_API_KEY='AD.…'"
-```
+---
 
-The alias name and the Ludus userid are **not** the same thing. Scripts check the key prefix is `AD`.
-
-## If install hit “username administrator already exists”
-
-```bash
-rm -f /opt/ludus/install/initial-admin.yml
-systemctl restart ludus-admin
-ludus-install-status
- export LUDUS_API_KEY='ROOT.…'
-ludus user add --name 'Lab Admin' --userid AD --admin --url https://127.0.0.1:8081
-```
-
-## Chain
+## 0) Key + sync
 
 ```bash
 su -
 administrator
-cd /opt/ranges
+echo "${LUDUS_API_KEY%%.*}"    # must print: AD
+cd /opt/ranges/geneva
+```
 
-./setup-wittenberg.sh --templates
+---
+
+## 1) Install template defs into AD’s catalog
+
+```bash
+ludus source list
+ludus source add ludus-source-bsl --templates win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+```
+
+If that fails:
+
+```bash
+ludus source add https://github.com/badsectorlabs/ludus-source-bsl --templates win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+```
+
+Check:
+
+```bash
+ludus templates list
+```
+
+You must see `win2022-server-x64-template`, `ubuntu-22.04-x64-server-template`, `kali-x64-desktop-template`.
+
+---
+
+## 2) Build Packer images
+
+```bash
+ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
 ludus templates logs -f
+```
 
-./setup-wittenberg.sh --deploy
+Ctrl-C to stop following logs (build keeps running). Recheck:
+
+```bash
+ludus templates list
+```
+
+All three must show **BUILT** / **TRUE** before deploy.
+
+Stuck DHCP?
+
+```bash
+ludus templates abort
+systemctl restart dnsmasq
+ludus templates build -n <the-stuck-template-name>
+ludus templates logs -f
+```
+
+---
+
+## 3) Deploy Geneva (GOAD + red infra)
+
+```bash
+cd /opt/ranges
+ludus range config set -f geneva/range.yml
+ludus range deploy
 ludus range logs -f
 ```
 
-`geneva/range.yml` = GOAD AD + Kali + C2 + redirs + VLAN rules.
+Status:
+
+```bash
+ludus range list
+ludus range status
+```
+
+---
+
+## 4) Optional — stamp inventories + Kali notes
+
+```bash
+cd /opt/ranges/geneva
+RANGENUMBER=$(ludus range list --json | jq -r '.rangeNumber // .[0].rangeNumber')
+export RANGENUMBER
+./stamp-range-number.sh
+# optional:
+ansible-playbook deploy-range.yml --limit linattack
+```
+
+---
+
+## What `geneva/range.yml` builds
+
+| VLAN | VMs |
+| --- | --- |
+| 10 | GOAD: AD-DC01…AD-SRV03 (Defender ON) |
+| 20 | redir-e1-0, redir-w1-0 |
+| 30 | linattack1 (Kali), winattack1, c2server0, c2server1, teamshare |
+| 40 | ansible |
+
+VLAN rules: attack↔redirs, attack→GOAD, GOAD→redirs, ansible→10/20/30.  
+C2 **software** you install yourself on the C2 VMs.

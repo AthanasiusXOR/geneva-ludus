@@ -1,19 +1,11 @@
-# Wittenberg Ludus + Geneva range
+# Wittenberg / Geneva range files
 
-| | |
+Ludus userid: **AD** · shell alias: **administrator** → `LUDUS_API_KEY='AD.…'`
+
+| Path | What |
 | --- | --- |
-| **wittenberg** | Debian Ludus host |
-| **AD** | Ludus userid / API key `AD.…` |
-| **administrator** | bashrc alias that exports that key |
-| **geneva/** | GOAD + red infra in `range.yml` |
+| [`geneva/range.yml`](geneva/range.yml) | GOAD + Kali + C2 + redirs + VLAN rules |
+| [`geneva/inventory.yml`](geneva/inventory.yml) | Ansible inventory |
+| [`SETUP.md`](SETUP.md) | **Line-by-line manual commands** |
 
-```bash
-su -
-administrator
-./setup-wittenberg.sh --templates
-ludus templates logs -f
-./setup-wittenberg.sh --deploy
-ludus range logs -f
-```
-
-See [`SETUP.md`](SETUP.md).
+No setup script — run Ludus CLI by hand. See SETUP.md.
