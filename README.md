@@ -6,7 +6,7 @@ Commands match Ludus docs:
 | --- | --- | --- |
 | `--install` | [Proxmox](https://docs.ludus.cloud/docs/deployment-options/proxmox) | `curl -s https://ludus.cloud/install \| bash` |
 | `--users` | [Create a User](https://docs.ludus.cloud/docs/quick-start/create-a-user/) | `ludus user list` + optional `ludus user add --name … --userid … --email …` |
-| `--templates` | [Build Templates](https://docs.ludus.cloud/docs/quick-start/build-templates/) + [Sources](https://docs.ludus.cloud/docs/using-ludus/sources) | `source add --templates …` then `templates build -n …` |
+| `--templates` | [Build Templates](https://docs.ludus.cloud/docs/quick-start/build-templates/) + [Sources](https://docs.ludus.cloud/docs/using-ludus/sources) | add `ubuntu-22.04` if missing, then `ludus templates build` (all standard) |
 | `--deploy` | [Deploy a range](https://docs.ludus.cloud/docs/category/quick-start/) | `range config set` + `range deploy` |
 
 Range owner = prefix of `LUDUS_API_KEY` (not hardcoded).
