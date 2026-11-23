@@ -1,20 +1,20 @@
-# Geneva range (Wittenberg / Ludus user AD)
+# Geneva range (Wittenberg)
+
+Ludus **userid / deploy user:** `AD` (whatever prefix is on `LUDUS_API_KEY`)  
+Shell alias can be anything — the **key prefix** is the range owner.
 
 | File | Purpose |
 | --- | --- |
-| `range.yml` | Ludus deploy — GOAD + red infra + VLAN forward rules |
-| `inventory.yml` | Ansible hosts (set `RANGE_NUMBER` after deploy) |
-| `deploy-range.yml` | Optional Kali SSH key post-config |
+| `range.yml` | GOAD + red infra + VLAN rules |
+| `inventory.yml` | Ansible (set `RANGE_NUMBER` after deploy) |
+| `setup-wittenberg.sh` | `--templates` / `--users` / `--deploy` |
 
 ```bash
-administrator
-ludus source add ludus-source-bsl --templates win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
-ludus templates build -n win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template
+export LUDUS_API_KEY='AD.…'    # this user owns the range
+./setup-wittenberg.sh --templates
 ludus templates logs -f
-
-ludus range config set -f range.yml
-ludus range deploy
+./setup-wittenberg.sh --deploy
 ludus range logs -f
-
-sed -i "s/RANGE_NUMBER/$(ludus range list --json | jq -r '.rangeNumber // .[0].rangeNumber')/g" inventory.yml
 ```
+
+`--templates`, `--users`, and `--deploy` need the key. `--install` does not.
