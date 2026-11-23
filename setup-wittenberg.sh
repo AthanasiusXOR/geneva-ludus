@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Wittenberg helper — range owner = whoever owns LUDUS_API_KEY (no hardcoded userid)
+# Wittenberg helper — range owner = prefix of LUDUS_API_KEY (not hardcoded)
 #
-#   export LUDUS_API_KEY='CH.…'    # or AD.… / whatever you created at install
-#   ./setup-wittenberg.sh --templates
-#   ./setup-wittenberg.sh --deploy
+# Docs:
+#   Install:   https://docs.ludus.cloud/docs/deployment-options/proxmox
+#   Users:     https://docs.ludus.cloud/docs/quick-start/create-a-user/
+#   Templates: https://docs.ludus.cloud/docs/quick-start/build-templates/
+#   Sources:   https://docs.ludus.cloud/docs/using-ludus/sources
 #
 set -euo pipefail
 
@@ -24,18 +26,12 @@ usage() {
 Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--deploy] [--parallel N]
 
   Range owner = prefix of LUDUS_API_KEY (set before running).
-  range.yml uses {{ range_id }} so VMs become <USERID>-DC01, etc.
 
-  --install     Install Ludus (no API key)
-  --templates   source add + Packer build (needs LUDUS_API_KEY)
-  --users       Show current key's user / user list (needs LUDUS_API_KEY)
-  --deploy      Deploy range.yml as that key's user (needs LUDUS_API_KEY)
+  --install     curl -s https://ludus.cloud/install | bash  (no API key)
+  --users       ludus user list; optional ludus user add (needs admin key)
+  --templates   source add missing defs + templates build (needs API key)
+  --deploy      range config set + range (needs API key)
   --parallel N  Packer concurrency (default 1)
-
-  export LUDUS_API_KEY='YOURUSER.…'
-  ./setup-wittenberg.sh --templates
-  ludus templates logs -f
-  ./setup-wittenberg.sh --deploy
 USAGE
 }
 
@@ -64,7 +60,7 @@ need_api_key() {
   if [[ -z "${LUDUS_API_KEY:-}" ]]; then
     die "LUDUS_API_KEY is not set.
 
-Export the Ludus user key you want to own this range, then re-run:
+Export it, then re-run:
   export LUDUS_API_KEY='YOURUSER.…'
   ./setup-wittenberg.sh $*"
   fi
@@ -73,39 +69,56 @@ Export the Ludus user key you want to own this range, then re-run:
   u="$(ludus_user_from_key)"
   [[ -n "$u" ]] || die "Could not parse userid from LUDUS_API_KEY"
   if [[ "$u" == "ROOT" ]]; then
-    die "Do not use the ROOT key for templates/deploy. Export a normal Ludus user key."
+    die "Do not use ROOT for templates/deploy. Export a normal Ludus user key."
   fi
-  log "Range owner (from API key): $u"
+  log "API key user: $u"
 }
 
 stamp_inventory() {
   local u="$1"
   [[ -f "$INVENTORY" ]] || return 0
-  # inventory uses RANGE_ID placeholder for GOAD VM names
   if grep -q 'RANGE_ID' "$INVENTORY" 2>/dev/null; then
     sed -i "s/RANGE_ID/${u}/g" "$INVENTORY"
     log "Stamped inventory.yml RANGE_ID → ${u}"
   fi
 }
 
+# --- --install ---
+# https://docs.ludus.cloud/docs/deployment-options/proxmox
 if [[ $DO_INSTALL -eq 1 ]]; then
-  # Official install per https://docs.ludus.cloud/docs/deployment-options/proxmox
-  log "Installing Ludus (https://docs.ludus.cloud/docs/deployment-options/proxmox)"
+  log "Installing Ludus"
   apt update
   apt install -y curl sudo ca-certificates jq
   curl -s https://ludus.cloud/install | bash
   echo
-  echo "Next (Quick Start → Create a User):"
-  echo "  https://docs.ludus.cloud/docs/quick-start/"
-  echo "  ludus-install-status"
-  echo "  export LUDUS_API_KEY='YOURUSER.…'"
-  echo "  ./setup-wittenberg.sh --templates"
+  echo "Next: ludus-install-status → export the initial admin API key"
+  echo "Then Quick Start → Create a User / --users / --templates"
 fi
 
+# --- --users ---
+# https://docs.ludus.cloud/docs/quick-start/create-a-user/
 if [[ $DO_USERS -eq 1 ]]; then
   need_api_key --users
-  log "This shell will deploy as: $(ludus_user_from_key)"
   ludus user list
+  echo
+  echo "Create an additional Ludus user? (Enter alone to skip)"
+  read -r -p "  --name (e.g. Lab Admin): " uname
+  if [[ -n "${uname}" ]]; then
+    read -r -p "  --userid (1-20 alphanumeric, e.g. CH): " uid
+    [[ -n "${uid}" ]] || die "--userid required"
+    read -r -p "  --email (e.g. you@example.com): " uemail
+    [[ -n "${uemail}" ]] || die "--email required"
+    # Docs: ludus user add --name "…" --userid … --email …
+    # Do not use a --name that already exists as a Linux user (lowercase, spaces→-)
+    log "ludus user add --name \"${uname}\" --userid ${uid} --email ${uemail}"
+    ludus user add --name "${uname}" --userid "${uid}" --email "${uemail}"
+    echo
+    echo "Save the API key from the table. To use that user for Geneva:"
+    echo "  export LUDUS_API_KEY='${uid}.…'"
+    ludus user list
+  else
+    echo "Skipped create (list only)."
+  fi
 fi
 
 resolve_bsl() {
@@ -116,10 +129,18 @@ resolve_bsl() {
   fi
 }
 
+# --- --templates ---
+# https://docs.ludus.cloud/docs/quick-start/build-templates/
+# https://docs.ludus.cloud/docs/using-ludus/sources
+# Fresh install catalog often has win2022 + kali already; ubuntu-22.04 usually needs source add.
 if [[ $DO_TEMPLATES -eq 1 ]]; then
   need_api_key --templates
+
+  log "templates list (before)"
+  ludus templates list || true
+
   bsl="$(resolve_bsl)"
-  log "source add from $bsl"
+  log "Ensuring needed templates are installed from: $bsl"
   set +e
   ludus source add "$bsl" --templates "$NEEDED"
   rc=$?
@@ -133,10 +154,10 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   IFS=',' read -ra arr <<< "$NEEDED"
   for t in "${arr[@]}"; do
     t="${t// /}"
-    ludus templates list 2>/dev/null | grep -Fq "$t" || die "Missing: $t"
+    ludus templates list 2>/dev/null | grep -Fq "$t" || die "Missing from catalog: $t"
   done
 
-  log "templates build"
+  log "ludus templates build -n $NEEDED"
   if (( PARALLEL > 1 )); then
     ludus templates build -n "$NEEDED" --parallel "$PARALLEL"
   else
@@ -145,13 +166,15 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   echo "Watch: ludus templates logs -f"
 fi
 
+# --- --deploy ---
 if [[ $DO_DEPLOY -eq 1 ]]; then
   need_api_key --deploy
   [[ -f "$RANGE_YML" ]] || die "Missing $RANGE_YML"
   u="$(ludus_user_from_key)"
   stamp_inventory "$u"
-  log "Deploying range.yml as user $u (VMs: ${u}-DC01, …)"
+  log "ludus range config set -f $RANGE_YML"
   ludus range config set -f "$RANGE_YML"
+  log "ludus range deploy (as $u)"
   ludus range deploy
   echo "Watch: ludus range logs -f"
 fi
