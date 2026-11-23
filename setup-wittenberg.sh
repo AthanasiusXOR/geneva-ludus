@@ -15,7 +15,6 @@ DO_TEMPLATES=0
 DO_USERS=0
 DO_DEPLOY=0
 
-NEEDED="win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template"
 BSL_URL="https://github.com/badsectorlabs/ludus-source-bsl"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RANGE_YML="${RANGE_YML:-$SCRIPT_DIR/range.yml}"
@@ -80,6 +79,17 @@ stamp_inventory() {
   if grep -q 'RANGE_ID' "$INVENTORY" 2>/dev/null; then
     sed -i "s/RANGE_ID/${u}/g" "$INVENTORY"
     log "Stamped inventory.yml RANGE_ID → ${u}"
+  fi
+  # Range number (second octet) if Ludus already assigned one
+  if grep -q 'RANGE_NUMBER' "$INVENTORY" 2>/dev/null && command -v jq >/dev/null; then
+    local n
+    n="$(ludus range list --json 2>/dev/null | jq -r '.rangeNumber // .[0].rangeNumber // empty' || true)"
+    if [[ -n "$n" && "$n" != "null" ]]; then
+      sed -i "s/RANGE_NUMBER/${n}/g" "$INVENTORY"
+      log "Stamped inventory.yml RANGE_NUMBER → ${n}"
+    else
+      log "RANGE_NUMBER left for later (sed after deploy if needed)"
+    fi
   fi
 }
 

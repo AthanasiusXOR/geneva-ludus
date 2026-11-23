@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://docs.ludus.cloud/schemas/range-config.json
 # Geneva: GOAD (VLAN10) + redirs(20) + kali/c2/teamshare/winattack(30) + ansible(40)
-# Ludus userid: AD  |  Defender ON  |  network rules at bottom
+# Ludus range owner = LUDUS_API_KEY prefix ({{ range_id }}) | Defender ON | VLAN rules at bottom
 
 ludus:
   ###############################################

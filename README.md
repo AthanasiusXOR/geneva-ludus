@@ -1,23 +1,39 @@
-# Geneva range (Wittenberg)
+# Geneva range — Wittenberg (Ludus)
 
-Commands match Ludus docs:
+Fresh Debian → Ludus → templates → deploy GOAD + red infra.
 
-| Flag | Docs | What the script runs |
-| --- | --- | --- |
-| `--install` | [Proxmox](https://docs.ludus.cloud/docs/deployment-options/proxmox) | `curl -s https://ludus.cloud/install \| bash` |
-| `--users` | [Create a User](https://docs.ludus.cloud/docs/quick-start/create-a-user/) | `ludus user list` + optional `ludus user add --name … --userid … --email …` |
-| `--templates` | [Build Templates](https://docs.ludus.cloud/docs/quick-start/build-templates/) + [Sources](https://docs.ludus.cloud/docs/using-ludus/sources) | add `ubuntu-22.04` if missing, then `ludus templates build` (all standard) |
-| `--deploy` | [Deploy a range](https://docs.ludus.cloud/docs/category/quick-start/) | `range config set` + `range deploy` |
+| File | Purpose |
+| --- | --- |
+| `setup-wittenberg.sh` | `--install` / `--users` / `--templates` / `--deploy` |
+| `range.yml` | GOAD + Kali/C2/redirs + VLAN rules (`{{ range_id }}`) |
+| `inventory.yml` | Ansible (`RANGE_ID` / `RANGE_NUMBER` stamped on deploy) |
 
-Range owner = prefix of `LUDUS_API_KEY` (not hardcoded).
+## From scratch
 
 ```bash
+su -
+cd /opt/ranges          # this directory on the box
+chmod +x setup-wittenberg.sh
+
+# 1) Ludus (node name: wittenberg when prompted)
 ./setup-wittenberg.sh --install
-# ludus-install-status → export initial admin key
-export LUDUS_API_KEY='YOURUSER.…'
-./setup-wittenberg.sh --users          # optional extra user
+# reboot if asked, then:
+ludus-install-status
+export LUDUS_API_KEY='YOURUSER.…'    # initial admin key (not ROOT)
+
+# 2) Optional extra user
+./setup-wittenberg.sh --users
+
+# 3) Add ubuntu-22.04 if missing + build ALL catalog templates
 ./setup-wittenberg.sh --templates
 ludus templates logs -f
+ludus templates list                 # all BUILT before deploy
+
+# 4) Deploy Geneva
 ./setup-wittenberg.sh --deploy
 ludus range logs -f
 ```
+
+`range.yml` needs: `win2022-server-x64-template`, `ubuntu-22.04-x64-server-template`, `kali-x64-desktop-template` (plus any other standards `--templates` builds).
+
+Docs: [Proxmox install](https://docs.ludus.cloud/docs/deployment-options/proxmox) · [Build templates](https://docs.ludus.cloud/docs/quick-start/build-templates/)
