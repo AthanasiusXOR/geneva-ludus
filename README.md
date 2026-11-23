@@ -24,10 +24,10 @@ export LUDUS_API_KEY='YOURUSER.…'    # initial admin key (not ROOT)
 # 2) Optional extra user
 ./setup-wittenberg.sh --users
 
-# 3) Templates — Enter = Geneva only (win2022 + ubuntu-22.04 + kali). Or pick numbers / type all
+# 3) Templates — Enter = debian-13 (Ludus router) + win2022 + ubuntu-22.04 + kali
 ./setup-wittenberg.sh --templates
 ludus templates logs -f
-ludus templates list                 # those 3 must be BUILT (debian-13 is NOT required)
+ludus templates list                 # those 4 must be BUILT before deploy
 
 # 4) Deploy Geneva (installs GOAD roles for your API-key user, then config + deploy)
 ./setup-wittenberg.sh --deploy
@@ -42,6 +42,6 @@ ludus ansible role add badsectorlabs.ludus_adcs
 ludus ansible role add badsectorlabs.ludus_mssql
 ```
 
-`range.yml` needs: `win2022-server-x64-template`, `ubuntu-22.04-x64-server-template`, `kali-x64-desktop-template` (plus any other standards `--templates` builds).
+Must be BUILT before deploy: `debian-13-x64-server-template` (Ludus range router — not in `range.yml`), plus `win2022-server-x64-template`, `ubuntu-22.04-x64-server-template`, `kali-x64-desktop-template`.
 
 Docs: [Proxmox install](https://docs.ludus.cloud/docs/deployment-options/proxmox) · [Roles](https://docs.ludus.cloud/docs/using-ludus/roles/) · [Build templates](https://docs.ludus.cloud/docs/quick-start/build-templates/)

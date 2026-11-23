@@ -178,6 +178,7 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   )
   if [[ ${#CATALOG[@]} -eq 0 ]]; then
     CATALOG=(
+      debian-13-x64-server-template
       kali-x64-desktop-template
       ubuntu-22.04-x64-server-template
       win2022-server-x64-template
@@ -193,22 +194,25 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
     esac
     printf "  %2d) %s%s\n" "$((i + 1))" "${CATALOG[$i]}" "$mark"
   done
-  # Geneva range.yml only uses these three — debian-12/13/win11 are optional catalog noise.
+  # Required for Geneva:
+  #   debian-13  = Ludus range router (every deploy clones this; not in range.yml)
+  #   win2022 / ubuntu-22.04 / kali = VMs in range.yml
   GENEVA_NEEDED=(
+    debian-13-x64-server-template
     win2022-server-x64-template
     ubuntu-22.04-x64-server-template
     kali-x64-desktop-template
   )
 
   echo
-  echo "Enter = build Geneva only (win2022 + ubuntu-22.04 + kali)."
+  echo "Enter = build Geneva required (debian-13 router + win2022 + ubuntu-22.04 + kali)."
   echo "Or pick numbers (e.g. 3 5 10). Type 'all' to build the entire catalog."
   read -r -p "> " selection
 
   SELECTED=()
   if [[ -z "${selection// /}" ]]; then
     SELECTED=("${GENEVA_NEEDED[@]}")
-    log "Building Geneva-required templates only"
+    log "Building Geneva-required templates (includes debian-13 for the Ludus router)"
   elif [[ "${selection,,}" == "all" ]]; then
     SELECTED=("${CATALOG[@]}")
     log "Building ALL templates in catalog"
@@ -237,16 +241,27 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   [[ ${#SELECTED[@]} -gt 0 ]] || die "No templates selected"
   NEEDED_CSV="$(IFS=,; echo "${SELECTED[*]}")"
 
-  log "source add selected: $NEEDED_CSV"
-  set +e
-  ludus source add "$bsl" --templates "$NEEDED_CSV"
-  rc=$?
-  [[ $rc -eq 0 ]] || ludus source add "$BSL_URL" --templates "$NEEDED_CSV"
-  rc=$?
-  set -e
-  # already-present templates are fine
-  if [[ $rc -ne 0 ]]; then
-    log "source add returned $rc (ok if templates already in catalog)"
+  # Only source-add templates that are NOT already in ludus templates list
+  # (debian-13 is a Ludus default — source add from BSL will FATAL if missing there)
+  TO_SOURCE=()
+  LIST_OUT="$(ludus templates list 2>/dev/null || true)"
+  for t in "${SELECTED[@]}"; do
+    if printf '%s\n' "$LIST_OUT" | grep -Fq "$t"; then
+      log "Already in catalog: $t"
+    else
+      TO_SOURCE+=("$t")
+    fi
+  done
+  if [[ ${#TO_SOURCE[@]} -gt 0 ]]; then
+    SRC_CSV="$(IFS=,; echo "${TO_SOURCE[*]}")"
+    log "source add missing templates: $SRC_CSV"
+    set +e
+    ludus source add "$bsl" --templates "$SRC_CSV"
+    rc=$?
+    [[ $rc -eq 0 ]] || ludus source add "$BSL_URL" --templates "$SRC_CSV"
+    rc=$?
+    set -e
+    [[ $rc -eq 0 ]] || die "source add failed for: $SRC_CSV"
   fi
 
   ludus templates list
@@ -270,8 +285,8 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   echo
   echo "Watch: ludus templates logs -f"
   echo "If a build hangs on DHCP/SSH: ludus templates abort ; systemctl restart dnsmasq ; rebuild that template"
-  echo "Geneva needs BUILT: win2022-server-x64-template, ubuntu-22.04-x64-server-template, kali-x64-desktop-template"
-  echo "debian-13 is NOT required for this range. Then: ./setup-wittenberg.sh --deploy"
+  echo "Geneva needs BUILT: debian-13 (router), win2022, ubuntu-22.04, kali"
+  echo "Then: ./setup-wittenberg.sh --deploy"
 fi
 
 # Ignore Ludus "already installed" fatals so --deploy is re-runnable.
