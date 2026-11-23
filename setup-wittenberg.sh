@@ -89,11 +89,15 @@ stamp_inventory() {
 }
 
 if [[ $DO_INSTALL -eq 1 ]]; then
-  log "Installing Ludus (node name: wittenberg)"
+  # Official install per https://docs.ludus.cloud/docs/deployment-options/proxmox
+  log "Installing Ludus (https://docs.ludus.cloud/docs/deployment-options/proxmox)"
   apt update
   apt install -y curl sudo ca-certificates jq
-  curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
-  echo "Create/pick your Ludus user, then:"
+  curl -s https://ludus.cloud/install | bash
+  echo
+  echo "Next (Quick Start → Create a User):"
+  echo "  https://docs.ludus.cloud/docs/quick-start/"
+  echo "  ludus-install-status"
   echo "  export LUDUS_API_KEY='YOURUSER.…'"
   echo "  ./setup-wittenberg.sh --templates"
 fi
