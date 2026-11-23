@@ -3,7 +3,7 @@
 # Geneva range — Red-team infra + GOAD + Microsoft Defender ON
 #
 # Ludus host (Debian base): wittenberg
-# Ludus user / range owner: administrator  (bashrc alias: administrator)
+# Ludus user / range owner: AD  (shell alias: administrator → LUDUS_API_KEY=AD.…)
 #
 # Attack stack: VLANs 20/30/40
 # GOAD targets: VLAN 10 (sevenkingdoms / north / essos)

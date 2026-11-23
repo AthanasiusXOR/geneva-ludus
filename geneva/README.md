@@ -1,22 +1,13 @@
 # Geneva range
 
 Ludus host: **wittenberg**  
-Ludus user: **administrator** (bashrc alias `administrator` exports `LUDUS_API_KEY`)
+Ludus **userid:** `AD` (API key `AD.…`)  
+Shell alias: `administrator` (exports that key)
 
-Single config: **`range.yml`** — GOAD AD + red infra (Kali, C2s, redirs, teamshare, ansible).
-
-| VLAN | Contents |
-| --- | --- |
-| 10 | GOAD (kingslanding, winterfell, castelblack, meereen, braavos) — Defender ON |
-| 20 | Redirectors |
-| 30 | Kali, winattack, C2s, teamshare |
-| 40 | Ansible |
-
-GOAD VM names: `administrator-DC01`, etc.
+Config: **`range.yml`** — GOAD + Kali/C2/redirs. GOAD VMs: `AD-DC01`, etc.
 
 ```bash
 administrator
 ludus range config set -f range.yml
 ludus range deploy
-# or from repo root: ./setup-wittenberg.sh --deploy
 ```

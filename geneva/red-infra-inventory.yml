@@ -1,5 +1,5 @@
 ---
-# Geneva operator / C2 / redirector inventory (Ludus user: administrator)
+# Geneva operator / C2 / redirector inventory (Ludus user: AD)
 all:
   vars:
     ansible_user: localuser
@@ -51,15 +51,15 @@ winattack:
 
 goad:
   hosts:
-    administrator-DC01:
+    AD-DC01:
       ansible_host: 10.RANGE_NUMBER.10.10
-    administrator-DC02:
+    AD-DC02:
       ansible_host: 10.RANGE_NUMBER.10.11
-    administrator-SRV02:
+    AD-SRV02:
       ansible_host: 10.RANGE_NUMBER.10.12
-    administrator-DC03:
+    AD-DC03:
       ansible_host: 10.RANGE_NUMBER.10.13
-    administrator-SRV03:
+    AD-SRV03:
       ansible_host: 10.RANGE_NUMBER.10.14
   vars:
     ansible_connection: winrm
