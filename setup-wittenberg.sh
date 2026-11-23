@@ -272,6 +272,29 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   echo "When needed templates show BUILT/TRUE, run: ./setup-wittenberg.sh --deploy"
 fi
 
+# Ignore Ludus "already installed" fatals so --deploy is re-runnable.
+ensure_ansible_pkg() {
+  # usage: ensure_ansible_pkg collection|role <galaxy-name>
+  local kind="$1" name="$2" out rc
+  set +e
+  if [[ "$kind" == "collection" ]]; then
+    out="$(ludus ansible collection add "$name" 2>&1)"
+  else
+    out="$(ludus ansible role add "$name" 2>&1)"
+  fi
+  rc=$?
+  set -e
+  printf '%s\n' "$out"
+  if [[ $rc -eq 0 ]]; then
+    return 0
+  fi
+  if printf '%s\n' "$out" | grep -qiE 'already installed|already exists'; then
+    log "$kind already installed: $name (ok)"
+    return 0
+  fi
+  die "Failed to add $kind $name"
+}
+
 # --- --deploy ---
 # Roles are per-user; range config set fails if they are missing for this API key.
 # Docs: https://docs.ludus.cloud/docs/using-ludus/roles/
@@ -282,9 +305,9 @@ if [[ $DO_DEPLOY -eq 1 ]]; then
   stamp_inventory "$u"
 
   log "Install GOAD Ansible collection + roles for user $u"
-  ludus ansible collection add badsectorlabs.ludus_windows_utils
-  ludus ansible role add badsectorlabs.ludus_adcs
-  ludus ansible role add badsectorlabs.ludus_mssql
+  ensure_ansible_pkg collection badsectorlabs.ludus_windows_utils
+  ensure_ansible_pkg role badsectorlabs.ludus_adcs
+  ensure_ansible_pkg role badsectorlabs.ludus_mssql
   ludus ansible collection list || true
   ludus ansible roles list || true
 
