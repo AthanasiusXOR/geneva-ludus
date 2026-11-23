@@ -170,6 +170,16 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   log "templates list (will build all NOT BUILT)"
   ludus templates list
 
+  # Packer VMs use Ludus dnsmasq (192.0.2.0/24). Stale dnsmasq → DHCP hang /
+  # "Waiting for SSH" forever on ubuntu/debian builds. Restart before Packer.
+  if systemctl list-unit-files dnsmasq.service >/dev/null 2>&1; then
+    log "systemctl restart dnsmasq (Packer DHCP)"
+    systemctl restart dnsmasq
+    systemctl is-active --quiet dnsmasq || die "dnsmasq failed to start — fix before building templates"
+  else
+    log "dnsmasq.service not found — skipping restart (OK if Ludus uses another unit name)"
+  fi
+
   # Docs: ludus templates build  → builds every template in the catalog
   log "ludus templates build (all standard + ubuntu)"
   if (( PARALLEL > 1 )); then
@@ -179,6 +189,7 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   fi
   echo
   echo "Watch: ludus templates logs -f"
+  echo "If a build hangs on DHCP/SSH: ludus templates abort ; systemctl restart dnsmasq ; rebuild that template"
   echo "When all show BUILT/TRUE, run: ./setup-wittenberg.sh --deploy"
 fi
 
