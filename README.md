@@ -24,10 +24,10 @@ export LUDUS_API_KEY='YOURUSER.…'    # initial admin key (not ROOT)
 # 2) Optional extra user
 ./setup-wittenberg.sh --users
 
-# 3) Ensure ubuntu + numbered list (Enter = build all standards; or pick 1 2 3…)
+# 3) Templates — Enter = Geneva only (win2022 + ubuntu-22.04 + kali). Or pick numbers / type all
 ./setup-wittenberg.sh --templates
 ludus templates logs -f
-ludus templates list                 # needed ones BUILT before deploy
+ludus templates list                 # those 3 must be BUILT (debian-13 is NOT required)
 
 # 4) Deploy Geneva (installs GOAD roles for your API-key user, then config + deploy)
 ./setup-wittenberg.sh --deploy

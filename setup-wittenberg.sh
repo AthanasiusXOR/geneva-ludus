@@ -28,7 +28,7 @@ Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--deploy] [--p
 
   --install     curl -s https://ludus.cloud/install | bash  (no API key)
   --users       ludus user list; optional ludus user add (needs admin key)
-  --templates   ensure ubuntu + show numbered list; Enter=build all, or pick numbers (needs API key)
+  --templates   ensure ubuntu + numbered list; Enter=Geneva 3 only, numbers, or 'all' (needs API key)
   --deploy      range config set + range (needs API key)
   --parallel N  Packer concurrency (default 1)
 USAGE
@@ -144,7 +144,7 @@ resolve_bsl() {
 # https://docs.ludus.cloud/docs/using-ludus/sources
 #
 # Always ensure ubuntu-22.04 (Geneva). Show numbered catalog.
-# Enter = build ALL in catalog (standards + ubuntu). Numbers = build only those.
+# Enter = Geneva 3 only. Numbers = pick from list. 'all' = entire catalog.
 if [[ $DO_TEMPLATES -eq 1 ]]; then
   need_api_key --templates
 
@@ -178,11 +178,8 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   )
   if [[ ${#CATALOG[@]} -eq 0 ]]; then
     CATALOG=(
-      debian-12-x64-server-template
-      debian-13-x64-server-template
       kali-x64-desktop-template
       ubuntu-22.04-x64-server-template
-      win11-22h2-x64-enterprise-template
       win2022-server-x64-template
     )
   fi
@@ -196,46 +193,60 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
     esac
     printf "  %2d) %s%s\n" "$((i + 1))" "${CATALOG[$i]}" "$mark"
   done
+  # Geneva range.yml only uses these three — debian-12/13/win11 are optional catalog noise.
+  GENEVA_NEEDED=(
+    win2022-server-x64-template
+    ubuntu-22.04-x64-server-template
+    kali-x64-desktop-template
+  )
+
   echo
-  echo "Enter = build ALL templates currently in the catalog (standard + ubuntu)."
-  echo "Or pick numbers to build only those (e.g. 3 5 10) — will source-add if needed:"
+  echo "Enter = build Geneva only (win2022 + ubuntu-22.04 + kali)."
+  echo "Or pick numbers (e.g. 3 5 10). Type 'all' to build the entire catalog."
   read -r -p "> " selection
 
-  BUILD_ALL=0
   SELECTED=()
   if [[ -z "${selection// /}" ]]; then
-    BUILD_ALL=1
-    log "Building ALL templates in catalog (standard defaults + ubuntu)"
+    SELECTED=("${GENEVA_NEEDED[@]}")
+    log "Building Geneva-required templates only"
+  elif [[ "${selection,,}" == "all" ]]; then
+    SELECTED=("${CATALOG[@]}")
+    log "Building ALL templates in catalog"
   else
     selection="${selection//,/ }"
     for n in $selection; do
-      [[ "$n" =~ ^[0-9]+$ ]] || die "Not a number: $n"
+      [[ "$n" =~ ^[0-9]+$ ]] || die "Not a number: $n (or Enter / all)"
       idx=$((n - 1))
       if [[ $idx -lt 0 || $idx -ge ${#CATALOG[@]} ]]; then
         die "Out of range: $n (1-${#CATALOG[@]})"
       fi
       SELECTED+=("${CATALOG[$idx]}")
     done
-    # dedupe
-    DEDUPED=()
-    for t in "${SELECTED[@]}"; do
-      skip=0
-      for d in "${DEDUPED[@]+"${DEDUPED[@]}"}"; do
-        [[ "$d" == "$t" ]] && { skip=1; break; }
-      done
-      [[ $skip -eq 1 ]] || DEDUPED+=("$t")
+  fi
+
+  # dedupe
+  DEDUPED=()
+  for t in "${SELECTED[@]}"; do
+    skip=0
+    for d in "${DEDUPED[@]+"${DEDUPED[@]}"}"; do
+      [[ "$d" == "$t" ]] && { skip=1; break; }
     done
-    SELECTED=("${DEDUPED[@]}")
-    [[ ${#SELECTED[@]} -gt 0 ]] || die "No templates selected"
-    NEEDED_CSV="$(IFS=,; echo "${SELECTED[*]}")"
-    log "source add selected: $NEEDED_CSV"
-    set +e
-    ludus source add "$bsl" --templates "$NEEDED_CSV"
-    rc=$?
-    [[ $rc -eq 0 ]] || ludus source add "$BSL_URL" --templates "$NEEDED_CSV"
-    rc=$?
-    set -e
-    [[ $rc -eq 0 ]] || die "source add failed for selection"
+    [[ $skip -eq 1 ]] || DEDUPED+=("$t")
+  done
+  SELECTED=("${DEDUPED[@]}")
+  [[ ${#SELECTED[@]} -gt 0 ]] || die "No templates selected"
+  NEEDED_CSV="$(IFS=,; echo "${SELECTED[*]}")"
+
+  log "source add selected: $NEEDED_CSV"
+  set +e
+  ludus source add "$bsl" --templates "$NEEDED_CSV"
+  rc=$?
+  [[ $rc -eq 0 ]] || ludus source add "$BSL_URL" --templates "$NEEDED_CSV"
+  rc=$?
+  set -e
+  # already-present templates are fine
+  if [[ $rc -ne 0 ]]; then
+    log "source add returned $rc (ok if templates already in catalog)"
   fi
 
   ludus templates list
@@ -249,27 +260,18 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
     log "dnsmasq.service not found — skipping restart"
   fi
 
-  if [[ "$BUILD_ALL" -eq 1 ]]; then
-    log "ludus templates build (all)"
-    if (( PARALLEL > 1 )); then
-      ludus templates build --parallel "$PARALLEL"
-    else
-      ludus templates build
-    fi
+  log "ludus templates build -n $NEEDED_CSV"
+  if (( PARALLEL > 1 )); then
+    ludus templates build -n "$NEEDED_CSV" --parallel "$PARALLEL"
   else
-    NEEDED_CSV="$(IFS=,; echo "${SELECTED[*]}")"
-    log "ludus templates build -n $NEEDED_CSV"
-    if (( PARALLEL > 1 )); then
-      ludus templates build -n "$NEEDED_CSV" --parallel "$PARALLEL"
-    else
-      ludus templates build -n "$NEEDED_CSV"
-    fi
+    ludus templates build -n "$NEEDED_CSV"
   fi
 
   echo
   echo "Watch: ludus templates logs -f"
   echo "If a build hangs on DHCP/SSH: ludus templates abort ; systemctl restart dnsmasq ; rebuild that template"
-  echo "When needed templates show BUILT/TRUE, run: ./setup-wittenberg.sh --deploy"
+  echo "Geneva needs BUILT: win2022-server-x64-template, ubuntu-22.04-x64-server-template, kali-x64-desktop-template"
+  echo "debian-13 is NOT required for this range. Then: ./setup-wittenberg.sh --deploy"
 fi
 
 # Ignore Ludus "already installed" fatals so --deploy is re-runnable.
