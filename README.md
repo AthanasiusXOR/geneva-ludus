@@ -4,13 +4,14 @@
 | --- | --- |
 | **wittenberg** | Debian Ludus host |
 | **admin** | Ludus user; bashrc alias `admin` exports `LUDUS_API_KEY` |
-| **geneva/** | GOAD + red infra, Defender ON |
+| **geneva/** | GOAD + Kali/C2/redirs, Defender ON, VLAN rules for C2 path |
 
 ```bash
 su -
 admin
-./setup-wittenberg.sh --templates
-ludus templates logs -f
+./setup-wittenberg.sh --templates    # wait until BUILT
+./setup-wittenberg.sh --deploy       # GOAD + attack infra
+ludus range logs -f
 ```
 
-See [`SETUP.md`](SETUP.md).
+Details: [`SETUP.md`](SETUP.md).
