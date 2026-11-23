@@ -5,7 +5,7 @@ Everything for Wittenberg lives here — including **GOAD AD** and **red infra**
 | Name | What |
 | --- | --- |
 | **wittenberg** | Debian Ludus host |
-| **administrator** | Ludus user; bashrc alias `administrator` → `LUDUS_API_KEY` |
+| **administrator** | Ludus **userid** `administrator` (alias exports key); display name e.g. Lab Admin — see SETUP.md if install hit “username already exists” |
 | **geneva/** | GOAD + Kali/C2/redirs + VLAN rules |
 
 ```bash

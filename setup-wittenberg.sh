@@ -66,7 +66,7 @@ done
 [[ $DO_INSTALL -eq 1 || $DO_TEMPLATES -eq 1 || $DO_USERS -eq 1 || $DO_DEPLOY -eq 1 ]] || { usage; exit 1; }
 
 if [[ $DO_INSTALL -eq 1 ]]; then
-  log "Installing Ludus (node name: wittenberg; create Ludus user: ${LUDUS_USER})"
+  log "Installing Ludus (node name: wittenberg). Prefer display name like Lab Admin; userid=${LUDUS_USER}"
   apt update
   apt install -y curl sudo ca-certificates jq
   curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
@@ -107,8 +107,8 @@ if [[ $DO_USERS -eq 1 ]]; then
   log "Checking Ludus users (expect ${LUDUS_USER})"
   ludus user list
   if ! ludus user list 2>/dev/null | grep -qi "$LUDUS_USER"; then
-    die "User ${LUDUS_USER} not listed. Create with ROOT key:
-  ludus user add --name Administrator --userid administrator --admin --url https://127.0.0.1:8081"
+    die "User ${LUDUS_USER} not listed. Create with ROOT key (name must NOT be 'administrator' — that Linux user already exists):
+  ludus user add --name 'Lab Admin' --userid administrator --admin --url https://127.0.0.1:8081"
   fi
   echo "OK: ${LUDUS_USER} present"
 fi
