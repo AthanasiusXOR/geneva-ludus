@@ -28,6 +28,7 @@ export LUDUS_API_KEY='YOURUSER.…'    # initial admin key (not ROOT)
 ./setup-wittenberg.sh --templates
 ludus templates logs -f
 ludus templates list                 # those 4 must be BUILT before deploy
+# If debian-13 Packer dies in ~2s on ISO download (404): ./setup-wittenberg.sh --fix-debian13
 
 # 4) Deploy Geneva (installs GOAD roles for your API-key user, then config + deploy)
 ./setup-wittenberg.sh --deploy

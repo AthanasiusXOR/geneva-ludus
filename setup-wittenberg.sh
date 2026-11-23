@@ -14,6 +14,7 @@ DO_INSTALL=0
 DO_TEMPLATES=0
 DO_USERS=0
 DO_DEPLOY=0
+DO_FIX_DEBIAN13=0
 
 BSL_URL="https://github.com/badsectorlabs/ludus-source-bsl"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,15 +23,16 @@ INVENTORY="${INVENTORY:-$SCRIPT_DIR/inventory.yml}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--deploy] [--parallel N]
+Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--deploy] [--fix-debian13] [--parallel N]
 
   Range owner = prefix of LUDUS_API_KEY (set before running).
 
-  --install     curl -s https://ludus.cloud/install | bash  (no API key)
-  --users       ludus user list; optional ludus user add (needs admin key)
-  --templates   ensure ubuntu + numbered list; Enter=Geneva 3 only, numbers, or 'all' (needs API key)
-  --deploy      range config set + range (needs API key)
-  --parallel N  Packer concurrency (default 1)
+  --install        curl -s https://ludus.cloud/install | bash  (no API key)
+  --users          ludus user list; optional ludus user add (needs admin key)
+  --templates      Geneva templates (auto-patches debian-13 ISO URL if needed)
+  --deploy         install GOAD roles/collections, then config set + deploy
+  --fix-debian13   patch Packer ISO URL (current/13.7.0 404 → archive/13.7.0)
+  --parallel N     Packer concurrency (default 1)
 USAGE
 }
 
@@ -47,13 +49,37 @@ while [[ $# -gt 0 ]]; do
     --templates) DO_TEMPLATES=1; shift ;;
     --users) DO_USERS=1; shift ;;
     --deploy) DO_DEPLOY=1; shift ;;
+    --fix-debian13) DO_FIX_DEBIAN13=1; shift ;;
     --parallel) PARALLEL="${2:?}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown: $1" ;;
   esac
 done
 
-[[ $DO_INSTALL -eq 1 || $DO_TEMPLATES -eq 1 || $DO_USERS -eq 1 || $DO_DEPLOY -eq 1 ]] || { usage; exit 1; }
+[[ $DO_INSTALL -eq 1 || $DO_TEMPLATES -eq 1 || $DO_USERS -eq 1 || $DO_DEPLOY -eq 1 || $DO_FIX_DEBIAN13 -eq 1 ]] || { usage; exit 1; }
+
+
+# Ludus pins debian-13.7.0 under cdimage .../current/... which 404s once Debian
+# ships a newer point release. Point Packer at the stable archive URL instead.
+fix_debian13_iso() {
+  local old_url="https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.7.0-amd64-netinst.iso"
+  local new_url="https://cdimage.debian.org/cdimage/archive/13.7.0/amd64/iso-cd/debian-13.7.0-amd64-netinst.iso"
+  local patched=0
+  local f
+  while IFS= read -r -d '' f; do
+    if grep -Fq "$old_url" "$f" 2>/dev/null; then
+      sed -i "s|${old_url}|${new_url}|g" "$f"
+      log "Patched ISO URL in $f"
+      patched=1
+    elif grep -Fq "$new_url" "$f" 2>/dev/null; then
+      log "Already patched: $f"
+      patched=1
+    fi
+  done < <(find /opt/ludus -type f \( -name 'debian13*.pkr.hcl' -o -name 'debian-13*.pkr.hcl' \) -print0 2>/dev/null)
+  if [[ $patched -eq 0 ]]; then
+    die "No debian13 Packer HCL under /opt/ludus (is Ludus installed?)"
+  fi
+}
 
 need_api_key() {
   if [[ -z "${LUDUS_API_KEY:-}" ]]; then
@@ -92,6 +118,17 @@ stamp_inventory() {
     fi
   fi
 }
+
+# --- --fix-debian13 ---
+if [[ $DO_FIX_DEBIAN13 -eq 1 ]]; then
+  log "Fix debian-13 Packer ISO URL (404 under current/)"
+  fix_debian13_iso
+  echo "Next:"
+  echo "  ludus templates abort 2>/dev/null || true"
+  echo "  systemctl restart dnsmasq"
+  echo "  ludus templates build -n debian-13-x64-server-template"
+  echo "  ludus templates logs -f"
+fi
 
 # --- --install ---
 # https://docs.ludus.cloud/docs/deployment-options/proxmox
@@ -147,6 +184,7 @@ resolve_bsl() {
 # Enter = Geneva 3 only. Numbers = pick from list. 'all' = entire catalog.
 if [[ $DO_TEMPLATES -eq 1 ]]; then
   need_api_key --templates
+  fix_debian13_iso || true
 
   bsl="$(resolve_bsl)"
   EXTRA="ubuntu-22.04-x64-server-template"
