@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Wittenberg bootstrap for Ludus user: admin
 #
-# Your standing API key is the install admin:
-#   export LUDUS_API_KEY='admin.…'
+# Standing key: Ludus user "admin". Your ~/.bashrc alias `admin` exports LUDUS_API_KEY.
 #
-# Run as:  su -   then export the key, then run this script.
-# Do NOT sudo the script for --templates (sudo can drop the env var unless -E).
+#   su -
+#   admin                          # alias → export LUDUS_API_KEY
+#   ./setup-wittenberg.sh --templates
+#
+# Do NOT sudo the script for --templates (sudo drops the env unless -E).
 set -euo pipefail
 
 PARALLEL=1
@@ -23,18 +25,17 @@ usage() {
   cat <<USAGE
 Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--parallel N]
 
-  Ludus user hardcoded: ${LUDUS_USER}
-  export LUDUS_API_KEY='${LUDUS_USER}.…'   # from ludus-install-status
+  Ludus user: ${LUDUS_USER}
+  Your ~/.bashrc alias \`admin\` exports LUDUS_API_KEY — run that first.
 
   --install     Ludus installer (node name: wittenberg)
   --templates   source add the three Geneva templates into admin's catalog, then Packer build
-  --users       Verify ${LUDUS_USER} exists (does not create ATHANASIUS)
+  --users       Verify ${LUDUS_USER} exists
   --parallel N  Packer concurrency (default 1)
 
-As root login shell:
-  su -
-  export LUDUS_API_KEY='admin.…'
-  cd /opt/ranges   # or wherever this repo is
+As su -:
+  admin                         # bashrc alias → export LUDUS_API_KEY
+  cd /opt/ranges
   ./setup-wittenberg.sh --templates
 USAGE
 }
@@ -62,8 +63,8 @@ if [[ $DO_INSTALL -eq 1 ]]; then
   curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
   echo
   echo "Next (as su -):"
-  echo "  ludus-install-status"
-  echo "  export LUDUS_API_KEY='admin.…'   # the admin user key, NOT ROOT"
+  echo "  ludus-install-status   # confirm admin user / key once"
+  echo "  admin                  # bashrc alias exports LUDUS_API_KEY"
   echo "  ./setup-wittenberg.sh --templates"
 fi
 
@@ -72,16 +73,16 @@ need_admin_key() {
   if [[ -z "${LUDUS_API_KEY:-}" ]]; then
     die "LUDUS_API_KEY unset.
 
-As su -:
-  export LUDUS_API_KEY='admin.…'    # from ludus-install-status
+Run your bashrc alias first, then the script:
+  admin
   ./setup-wittenberg.sh --templates"
   fi
 
   local prefix="${LUDUS_API_KEY%%.*}"
-  log "LUDUS_API_KEY prefix: ${prefix} (required: ${LUDUS_USER})"
+  log "LUDUS_API_KEY prefix: ${prefix} (expected Ludus user: ${LUDUS_USER})"
 
   if [[ "${prefix}" == "ROOT" ]]; then
-    die "ROOT key will not populate templates. Use: export LUDUS_API_KEY='admin.…'"
+    die "ROOT key will not populate templates. Run: admin   # then retry"
   fi
 
   # Case-insensitive match for admin
@@ -89,8 +90,8 @@ As su -:
   want="$(printf '%s' "$LUDUS_USER" | tr '[:upper:]' '[:lower:]')"
   lower="$(printf '%s' "$prefix" | tr '[:upper:]' '[:lower:]')"
   if [[ "$lower" != "$want" ]]; then
-    die "Expected key for user '${LUDUS_USER}', got '${prefix}'.
-  export LUDUS_API_KEY='admin.…'"
+    die "Expected key for Ludus user '${LUDUS_USER}', got '${prefix}'.
+Run: admin   # bashrc alias that exports the admin LUDUS_API_KEY"
   fi
 }
 

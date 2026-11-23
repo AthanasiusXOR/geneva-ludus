@@ -3,12 +3,12 @@
 | Name | What |
 | --- | --- |
 | **wittenberg** | Debian Ludus host |
-| **admin** | Ludus user / `LUDUS_API_KEY=admin.…` |
+| **admin** | Ludus user; bashrc alias `admin` exports `LUDUS_API_KEY` |
 | **geneva/** | GOAD + red infra, Defender ON |
 
 ```bash
 su -
-export LUDUS_API_KEY='admin.…'
+admin
 ./setup-wittenberg.sh --templates
 ludus templates logs -f
 ```
