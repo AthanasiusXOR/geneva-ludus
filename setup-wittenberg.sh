@@ -273,11 +273,21 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
 fi
 
 # --- --deploy ---
+# Roles are per-user; range config set fails if they are missing for this API key.
+# Docs: https://docs.ludus.cloud/docs/using-ludus/roles/
 if [[ $DO_DEPLOY -eq 1 ]]; then
   need_api_key --deploy
   [[ -f "$RANGE_YML" ]] || die "Missing $RANGE_YML"
   u="$(ludus_user_from_key)"
   stamp_inventory "$u"
+
+  log "Install GOAD Ansible collection + roles for user $u"
+  ludus ansible collection add badsectorlabs.ludus_windows_utils
+  ludus ansible role add badsectorlabs.ludus_adcs
+  ludus ansible role add badsectorlabs.ludus_mssql
+  ludus ansible collection list || true
+  ludus ansible roles list || true
+
   log "ludus range config set -f $RANGE_YML"
   ludus range config set -f "$RANGE_YML"
   log "ludus range deploy (as $u)"

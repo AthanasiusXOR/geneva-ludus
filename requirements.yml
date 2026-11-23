@@ -1,6 +1,11 @@
 ---
+# Installed automatically by: ./setup-wittenberg.sh --deploy
+# Or manually (as the same LUDUS_API_KEY user who deploys):
+#   ludus ansible collection add badsectorlabs.ludus_windows_utils
+#   ludus ansible role add badsectorlabs.ludus_adcs
+#   ludus ansible role add badsectorlabs.ludus_mssql
 collections:
-  - name: microsoft.ad
-  - name: community.windows
-  - name: ansible.windows
-  - name: community.general
+  - name: badsectorlabs.ludus_windows_utils
+roles:
+  - name: badsectorlabs.ludus_adcs
+  - name: badsectorlabs.ludus_mssql
