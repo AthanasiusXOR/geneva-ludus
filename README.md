@@ -1,17 +1,27 @@
 # Wittenberg Ludus + Geneva range
 
+Everything for Wittenberg lives here — including **GOAD AD** and **red infra** in `geneva/range.yml`.
+
 | Name | What |
 | --- | --- |
 | **wittenberg** | Debian Ludus host |
-| **admin** | Ludus user; bashrc alias `admin` exports `LUDUS_API_KEY` |
-| **geneva/** | GOAD + Kali/C2/redirs, Defender ON, VLAN rules for C2 path |
+| **administrator** | Ludus user; bashrc alias `administrator` → `LUDUS_API_KEY` |
+| **geneva/** | GOAD + Kali/C2/redirs + VLAN rules |
 
 ```bash
 su -
-admin
-./setup-wittenberg.sh --templates    # wait until BUILT
-./setup-wittenberg.sh --deploy       # GOAD + attack infra
+administrator
+./setup-wittenberg.sh --templates
+ludus templates logs -f
+./setup-wittenberg.sh --deploy
 ludus range logs -f
 ```
 
-Details: [`SETUP.md`](SETUP.md).
+Copy to the Ludus box:
+
+```bash
+./pack-ranges.sh
+# or: rsync -av ./ root@wittenberg:/opt/ranges/
+```
+
+See [`SETUP.md`](SETUP.md).

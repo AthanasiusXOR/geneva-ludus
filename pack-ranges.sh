@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pack Geneva range + Wittenberg setup helpers into a tarball.
+# Pack everything needed on Wittenberg (setup + Geneva GOAD/red-infra).
 set -euo pipefail
 cd "$(dirname "$0")"
 stamp="$(date +%Y%m%d)"
@@ -10,10 +10,11 @@ tar -czf "$out" \
   --exclude='*/__pycache__' \
   --exclude='*.retry' \
   --exclude='wittenberg-geneva-*.tar.gz' \
-  --exclude='reformation-ranges-*.tar.gz' \
   README.md SETUP.md \
   setup-wittenberg.sh install-all-templates.sh pack-ranges.sh \
   geneva
 
 echo "Wrote $(pwd)/$out"
 ls -lh "$out"
+echo "Copy to Ludus:  scp $out root@wittenberg:/opt/"
+echo "On box:  mkdir -p /opt/ranges && tar -xzf /opt/$out -C /opt/ranges"

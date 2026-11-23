@@ -1,57 +1,58 @@
 # Setup Ludus on Wittenberg
 
-**Ludus user:** `admin`  
-**Shell:** bashrc alias `admin` exports `LUDUS_API_KEY` — run it before every Ludus step.
+**Ludus user:** `administrator`  
+**Shell alias:** `administrator` in `~/.bashrc` exports `LUDUS_API_KEY`.
 
-## What the chain builds
+Example bashrc line:
 
-| Step | Command | Result |
-| --- | --- | --- |
-| 1 | `./setup-wittenberg.sh --install` | Ludus on Wittenberg |
-| 2 | `admin` then `--templates` | Packer: win2022, ubuntu-22.04, kali |
-| 3 | `admin` then `--deploy` | **Geneva range** from `geneva/range.yml` |
+```bash
+alias administrator="export LUDUS_API_KEY='administrator.…'"
+```
 
-### Geneva range contents (`--deploy`)
+## What is in this directory
 
-| VLAN | What |
+| Path | Purpose |
 | --- | --- |
-| **10** | **GOAD AD** — kingslanding, winterfell, castelblack, meereen, braavos (Defender ON) |
-| **20** | Redirectors `redir-e1-0`, `redir-w1-0` |
-| **30** | Kali `linattack1`, `winattack1`, `c2server0/1`, `teamshare` |
-| **40** | `ansible` |
+| `setup-wittenberg.sh` | `--install` / `--templates` / `--deploy` |
+| `geneva/range.yml` | **Full range**: GOAD AD + Kali + C2 + redirs + VLAN rules |
+| `geneva/inventory.yml` | Ansible inventory (GOAD + attack) |
+| `geneva/red-infra-inventory.yml` | Operator-focused inventory |
+| `geneva/deploy-*.yml` | Optional Kali post-config |
+| `pack-ranges.sh` | Tarball to copy onto Wittenberg |
+| `install-all-templates.sh` | Optional: every Packer template (not required) |
 
-### Network rules (in `range.yml`)
+Yes — GOAD and red-infra are **one** range file: `geneva/range.yml`.
 
-Default inter-VLAN: **REJECT**. Explicit ACCEPT:
-
-- 40 → 30, 20, 10 (ansible → attack / redirs / GOAD)
-- 10 → 20 (GOAD → redirs)
-- 30 ↔ 20 (attack ↔ redirs) — C2 path through redirectors
-- 30 → 10 (attack → GOAD)
-
-WireGuard → VLANs: ACCEPT. Blocks `192.168.0.0/24` and `192.168.1.0/24`.
-
-`--deploy` does **not** install Cobalt/Sliver/etc. on the C2 boxes — it builds the VMs and plumbing. You put the C2 software on later.
-
-## Test chain (as `su -`)
+## Chain (as `su -`)
 
 ```bash
 su -
-# ensure bashrc alias exists, e.g.:
-#   alias admin="export LUDUS_API_KEY='admin.…'"
+administrator                 # alias → LUDUS_API_KEY
 
-admin
-cd /opt/ranges     # synced copy of this repo
+cd /opt/ranges                # synced copy of this repo
 
-# A) Ludus already installed? skip --install
+# 1) Ludus (skip if already installed)
 # ./setup-wittenberg.sh --install
 
-# B) Templates
+# 2) Templates
 ./setup-wittenberg.sh --templates
 ludus templates logs -f
-ludus templates list    # all three BUILT / TRUE
+ludus templates list          # win2022, ubuntu-22.04, kali = BUILT
 
-# C) Range
+# 3) Deploy GOAD + red infra
 ./setup-wittenberg.sh --deploy
 ludus range logs -f
 ```
+
+## Range contents (`--deploy`)
+
+| VLAN | What |
+| --- | --- |
+| 10 | GOAD AD (5 Windows) — Defender ON |
+| 20 | redir-e1-0, redir-w1-0 |
+| 30 | linattack1 (Kali), winattack1, c2server0/1, teamshare |
+| 40 | ansible |
+
+Network: inter-VLAN default REJECT; ACCEPT ansible→10/20/30, GOAD→redirs, attack↔redirs, attack→GOAD.
+
+C2 **software** is not installed by Ludus — VMs + plumbing only.

@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Wittenberg bootstrap for Ludus user: admin
+# Wittenberg bootstrap — Ludus user: administrator
 #
-# Standing key: Ludus user "admin". Your ~/.bashrc alias `admin` exports LUDUS_API_KEY.
+# ~/.bashrc alias `administrator` exports LUDUS_API_KEY.
 #
 #   su -
-#   admin                          # alias → export LUDUS_API_KEY
+#   administrator
 #   ./setup-wittenberg.sh --templates
+#   ludus templates logs -f          # wait until BUILT
+#   ./setup-wittenberg.sh --deploy
+#   ludus range logs -f
 #
-# Do NOT sudo the script for --templates (sudo drops the env unless -E).
+# Do NOT sudo --templates/--deploy (sudo drops env unless -E).
 set -euo pipefail
 
 PARALLEL=1
@@ -16,8 +19,7 @@ DO_TEMPLATES=0
 DO_USERS=0
 DO_DEPLOY=0
 
-# Fixed Ludus user for this lab
-LUDUS_USER="admin"
+LUDUS_USER="administrator"
 
 NEEDED="win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template"
 BSL_URL="https://github.com/badsectorlabs/ludus-source-bsl"
@@ -29,18 +31,18 @@ usage() {
 Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--deploy] [--parallel N]
 
   Ludus user: ${LUDUS_USER}
-  Run bashrc alias \`admin\` first (exports LUDUS_API_KEY).
+  Run bashrc alias \`administrator\` first (exports LUDUS_API_KEY).
 
   --install     Ludus installer (node name: wittenberg)
   --templates   source add + Packer build (win2022, ubuntu-22.04, kali)
   --users       Verify ${LUDUS_USER} exists
-  --deploy      Set geneva/range.yml + range GOAD + attack infra (needs BUILT templates)
+  --deploy      Deploy geneva/range.yml (GOAD + red infra) — needs BUILT templates
   --parallel N  Packer concurrency (default 1)
 
-Full chain after Ludus is up:
-  admin
+Full chain:
+  administrator
   ./setup-wittenberg.sh --templates
-  ludus templates logs -f          # wait until BUILT
+  ludus templates logs -f
   ./setup-wittenberg.sh --deploy
   ludus range logs -f
 USAGE
@@ -64,51 +66,49 @@ done
 [[ $DO_INSTALL -eq 1 || $DO_TEMPLATES -eq 1 || $DO_USERS -eq 1 || $DO_DEPLOY -eq 1 ]] || { usage; exit 1; }
 
 if [[ $DO_INSTALL -eq 1 ]]; then
-  log "Installing Ludus (set node name to wittenberg; admin user should be: ${LUDUS_USER})"
+  log "Installing Ludus (node name: wittenberg; create Ludus user: ${LUDUS_USER})"
   apt update
   apt install -y curl sudo ca-certificates jq
   curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
   echo
-  echo "Next (as su -):"
-  echo "  ludus-install-status   # confirm admin user / key once"
-  echo "  admin                  # bashrc alias exports LUDUS_API_KEY"
+  echo "Next:"
+  echo "  ludus-install-status"
+  echo "  # add to ~/.bashrc:  alias administrator=\"export LUDUS_API_KEY='administrator.…'\""
+  echo "  administrator"
   echo "  ./setup-wittenberg.sh --templates"
 fi
 
-need_admin_key() {
+need_key() {
   command -v ludus >/dev/null || die "ludus not on PATH"
   if [[ -z "${LUDUS_API_KEY:-}" ]]; then
-    die "LUDUS_API_KEY unset.
-
-Run your bashrc alias first, then the script:
-  admin
+    die "LUDUS_API_KEY unset. Run your bashrc alias first:
+  administrator
   ./setup-wittenberg.sh --templates"
   fi
 
   local prefix="${LUDUS_API_KEY%%.*}"
-  log "LUDUS_API_KEY prefix: ${prefix} (expected Ludus user: ${LUDUS_USER})"
+  log "LUDUS_API_KEY prefix: ${prefix} (required: ${LUDUS_USER})"
 
   if [[ "${prefix}" == "ROOT" ]]; then
-    die "ROOT key will not populate templates. Run: admin   # then retry"
+    die "ROOT key will not populate templates. Run: administrator"
   fi
 
-  # Case-insensitive match for admin
   local want lower
   want="$(printf '%s' "$LUDUS_USER" | tr '[:upper:]' '[:lower:]')"
   lower="$(printf '%s' "$prefix" | tr '[:upper:]' '[:lower:]')"
   if [[ "$lower" != "$want" ]]; then
     die "Expected key for Ludus user '${LUDUS_USER}', got '${prefix}'.
-Run: admin   # bashrc alias that exports the admin LUDUS_API_KEY"
+Run: administrator"
   fi
 }
 
 if [[ $DO_USERS -eq 1 ]]; then
-  need_admin_key
+  need_key
   log "Checking Ludus users (expect ${LUDUS_USER})"
   ludus user list
   if ! ludus user list 2>/dev/null | grep -qi "$LUDUS_USER"; then
-    die "User ${LUDUS_USER} not in ludus user list. Create during install or:
-  LUDUS_API_KEY='ROOT.…' ludus user add --name Admin --userid admin --admin --url https://127.0.0.1:8081"
+    die "User ${LUDUS_USER} not listed. Create with ROOT key:
+  ludus user add --name Administrator --userid administrator --admin --url https://127.0.0.1:8081"
   fi
   echo "OK: ${LUDUS_USER} present"
 fi
@@ -136,7 +136,7 @@ resolve_bsl() {
 }
 
 if [[ $DO_TEMPLATES -eq 1 ]]; then
-  need_admin_key
+  need_key
 
   log "source list"
   ludus source list || true
@@ -161,23 +161,22 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
     rc=$?
   fi
   set -e
-  [[ $rc -eq 0 ]] || die "source add failed (rc=$rc). Paste: ludus source list ; ludus templates list"
+  [[ $rc -eq 0 ]] || die "source add failed (rc=$rc)"
 
   echo
   log "templates list"
   ludus templates list
 
-  missing=0
   IFS=',' read -ra arr <<< "$NEEDED"
+  missing=0
   for t in "${arr[@]}"; do
     t="${t// /}"
     if ! ludus templates list 2>/dev/null | grep -Fq "$t"; then
-      echo "MISSING after source add: $t" >&2
+      echo "MISSING: $t" >&2
       missing=1
     fi
   done
   if [[ "$missing" -ne 0 ]]; then
-    # one-by-one last resort
     log "Retrying each template individually"
     for t in "${arr[@]}"; do
       t="${t// /}"
@@ -199,37 +198,32 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   fi
 
   echo
-  echo "Watch build:"
-  echo "  ludus templates logs -f"
-  echo "  ludus templates list"
-  echo "When all three show BUILT:"
-  echo "  ./setup-wittenberg.sh --deploy"
+  echo "Watch:  ludus templates logs -f"
+  echo "When BUILT:  administrator && ./setup-wittenberg.sh --deploy"
 fi
 
 if [[ $DO_DEPLOY -eq 1 ]]; then
-  need_admin_key
+  need_key
   [[ -f "$RANGE_YML" ]] || die "Missing range config: $RANGE_YML"
 
-  log "Checking needed templates are BUILT"
+  log "templates list (need BUILT before deploy)"
   list="$(ludus templates list 2>/dev/null || true)"
   echo "$list"
   for t in win2022-server-x64-template ubuntu-22.04-x64-server-template kali-x64-desktop-template; do
     echo "$list" | grep -Fq "$t" || die "Template not in catalog: $t — run --templates first"
   done
-  # Accept TRUE / BUILT / ✅ depending on Ludus version table
   if ! echo "$list" | grep -E 'win2022-server-x64-template' | grep -Eqi 'TRUE|BUILT|✔|✅'; then
-    echo "WARNING: win2022 may not be BUILT yet — deploy will fail if Packer is still running."
-    echo "Continue anyway in 5s (Ctrl-C to abort)…"
+    echo "WARNING: win2022 may not be BUILT yet — deploy will fail if Packer still running."
+    echo "Continue in 5s (Ctrl-C to abort)…"
     sleep 5
   fi
 
   log "range config set -f $RANGE_YML"
   ludus range config set -f "$RANGE_YML"
-  log "range deploy (GOAD VLAN10 + redirs20 + kali/c2/teamshare/winattack30 + ansible40)"
+  log "range deploy — GOAD (VLAN10) + redirs(20) + kali/c2/teamshare/winattack(30) + ansible(40)"
   ludus range deploy
   echo
   echo "Watch:  ludus range logs -f"
-  echo "Status: ludus range list"
 fi
 
 echo "Done."
