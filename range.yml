@@ -15,7 +15,6 @@ ludus:
     cpus: 2
     windows:
       sysprep: false
-      gpos: [] # Defender stays ON (do not add disable_defender)
     domain:
       fqdn: sevenkingdoms.local
       role: primary-dc
@@ -64,7 +63,6 @@ ludus:
     cpus: 2
     windows:
       sysprep: true
-      gpos: []
     roles:
       - name: badsectorlabs.ludus_windows_utils.ludus_child_domain
       - name: badsectorlabs.ludus_windows_utils.ludus_ad_password_policy
@@ -105,7 +103,6 @@ ludus:
     cpus: 2
     windows:
       sysprep: true
-      gpos: []
     roles:
       - name: badsectorlabs.ludus_windows_utils.ludus_child_domain_join
         depends_on:
@@ -172,7 +169,6 @@ ludus:
     cpus: 2
     windows:
       sysprep: true
-      gpos: [] # Defender ON
     domain:
       fqdn: essos.local
       role: primary-dc
@@ -238,7 +234,6 @@ ludus:
     cpus: 2
     windows:
       sysprep: true
-      gpos: []
     domain:
       fqdn: essos.local
       role: member
@@ -383,7 +378,6 @@ ludus:
     windows:
       install_additional_tools: false
       sysprep: true
-      gpos: []
     testing:
       snapshot: true
       block_internet: true
