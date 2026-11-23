@@ -1,18 +1,19 @@
 ---
-# Replace RANGE_NUMBER with your Ludus range number after deploy.
+# RANGE_ID is replaced from LUDUS_API_KEY on --deploy (or: sed -i "s/RANGE_ID/CH/g" inventory.yml)
+# Also replace RANGE_NUMBER with your Ludus range number after deploy.
 all:
   children:
     goad_windows:
       hosts:
-        AD-DC01:
+        RANGE_ID-DC01:
           ansible_host: 10.RANGE_NUMBER.10.10
-        AD-DC02:
+        RANGE_ID-DC02:
           ansible_host: 10.RANGE_NUMBER.10.11
-        AD-SRV02:
+        RANGE_ID-SRV02:
           ansible_host: 10.RANGE_NUMBER.10.12
-        AD-DC03:
+        RANGE_ID-DC03:
           ansible_host: 10.RANGE_NUMBER.10.13
-        AD-SRV03:
+        RANGE_ID-SRV03:
           ansible_host: 10.RANGE_NUMBER.10.14
       vars:
         ansible_connection: winrm

@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Wittenberg helper
+# Wittenberg helper — range owner = whoever owns LUDUS_API_KEY (no hardcoded userid)
 #
-# Deploy user = owner of LUDUS_API_KEY (your key prefix is AD).
-#   export LUDUS_API_KEY='AD.…'
+#   export LUDUS_API_KEY='CH.…'    # or AD.… / whatever you created at install
 #   ./setup-wittenberg.sh --templates
 #   ./setup-wittenberg.sh --deploy
 #
-# --install does not need a key. --templates / --users / --deploy do.
 set -euo pipefail
 
 PARALLEL=1
@@ -15,26 +13,26 @@ DO_TEMPLATES=0
 DO_USERS=0
 DO_DEPLOY=0
 
-LUDUS_USER="AD"
 NEEDED="win2022-server-x64-template,ubuntu-22.04-x64-server-template,kali-x64-desktop-template"
 BSL_URL="https://github.com/badsectorlabs/ludus-source-bsl"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RANGE_YML="${RANGE_YML:-$SCRIPT_DIR/range.yml}"
+INVENTORY="${INVENTORY:-$SCRIPT_DIR/inventory.yml}"
 
 usage() {
-  cat <<USAGE
+  cat <<'USAGE'
 Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--deploy] [--parallel N]
 
-  Ludus range owner (from your API key): ${LUDUS_USER}
-  GOAD VMs will be named ${LUDUS_USER}-DC01, etc.
+  Range owner = prefix of LUDUS_API_KEY (set before running).
+  range.yml uses {{ range_id }} so VMs become <USERID>-DC01, etc.
 
   --install     Install Ludus (no API key)
   --templates   source add + Packer build (needs LUDUS_API_KEY)
-  --users       Confirm user ${LUDUS_USER} exists (needs LUDUS_API_KEY)
+  --users       Show current key's user / user list (needs LUDUS_API_KEY)
   --deploy      Deploy range.yml as that key's user (needs LUDUS_API_KEY)
   --parallel N  Packer concurrency (default 1)
 
-  export LUDUS_API_KEY='AD.…'
+  export LUDUS_API_KEY='YOURUSER.…'
   ./setup-wittenberg.sh --templates
   ludus templates logs -f
   ./setup-wittenberg.sh --deploy
@@ -43,6 +41,10 @@ USAGE
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 log() { echo "==> $*"; }
+
+ludus_user_from_key() {
+  printf '%s\n' "${LUDUS_API_KEY%%.*}"
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -62,15 +64,27 @@ need_api_key() {
   if [[ -z "${LUDUS_API_KEY:-}" ]]; then
     die "LUDUS_API_KEY is not set.
 
-Export your AD user key, then re-run:
-  export LUDUS_API_KEY='AD.…'
+Export the Ludus user key you want to own this range, then re-run:
+  export LUDUS_API_KEY='YOURUSER.…'
   ./setup-wittenberg.sh $*"
   fi
   command -v ludus >/dev/null || die "ludus CLI not on PATH"
-  local prefix="${LUDUS_API_KEY%%.*}"
-  log "Using Ludus user from API key: ${prefix} (expected ${LUDUS_USER} for this range)"
-  if [[ "${prefix}" == "ROOT" ]]; then
-    die "Do not deploy/build templates with ROOT. Export the AD user key."
+  local u
+  u="$(ludus_user_from_key)"
+  [[ -n "$u" ]] || die "Could not parse userid from LUDUS_API_KEY"
+  if [[ "$u" == "ROOT" ]]; then
+    die "Do not use the ROOT key for templates/deploy. Export a normal Ludus user key."
+  fi
+  log "Range owner (from API key): $u"
+}
+
+stamp_inventory() {
+  local u="$1"
+  [[ -f "$INVENTORY" ]] || return 0
+  # inventory uses RANGE_ID placeholder for GOAD VM names
+  if grep -q 'RANGE_ID' "$INVENTORY" 2>/dev/null; then
+    sed -i "s/RANGE_ID/${u}/g" "$INVENTORY"
+    log "Stamped inventory.yml RANGE_ID → ${u}"
   fi
 }
 
@@ -79,18 +93,15 @@ if [[ $DO_INSTALL -eq 1 ]]; then
   apt update
   apt install -y curl sudo ca-certificates jq
   curl --proto '=https' --tlsv1.2 -sSf https://ludus.cloud/install | bash
-  echo "Then: ludus-install-status → export LUDUS_API_KEY='AD.…' → ./setup-wittenberg.sh --templates"
+  echo "Create/pick your Ludus user, then:"
+  echo "  export LUDUS_API_KEY='YOURUSER.…'"
+  echo "  ./setup-wittenberg.sh --templates"
 fi
 
 if [[ $DO_USERS -eq 1 ]]; then
   need_api_key --users
+  log "This shell will deploy as: $(ludus_user_from_key)"
   ludus user list
-  if ludus user list 2>/dev/null | grep -qw "$LUDUS_USER"; then
-    echo "OK: ${LUDUS_USER} exists — that is who owns the Geneva range / deploy"
-  else
-    die "${LUDUS_USER} not found. Create with an admin/ROOT key:
-  ludus user add --name 'Lab Admin' --userid AD --admin --url https://127.0.0.1:8081"
-  fi
 fi
 
 resolve_bsl() {
@@ -133,11 +144,12 @@ fi
 if [[ $DO_DEPLOY -eq 1 ]]; then
   need_api_key --deploy
   [[ -f "$RANGE_YML" ]] || die "Missing $RANGE_YML"
-  log "Deploying as API key user ${LUDUS_API_KEY%%.*} → range.yml"
+  u="$(ludus_user_from_key)"
+  stamp_inventory "$u"
+  log "Deploying range.yml as user $u (VMs: ${u}-DC01, …)"
   ludus range config set -f "$RANGE_YML"
   ludus range deploy
   echo "Watch: ludus range logs -f"
-  echo "GOAD VMs: ${LUDUS_USER}-DC01 … (range_id = API key userid)"
 fi
 
 echo "Done."
