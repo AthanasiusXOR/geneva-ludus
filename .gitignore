@@ -1,5 +1,3 @@
 *.tar.gz
 *.retry
 __pycache__/
-.inventory.yml.bak
-geneva/inventory.yml.bak

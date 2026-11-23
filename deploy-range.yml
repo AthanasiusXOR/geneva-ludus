@@ -1,0 +1,3 @@
+---
+# Optional after Ludus range deploy. GOAD + VMs come from range.yml.
+- import_playbook: deploy-lin.yml

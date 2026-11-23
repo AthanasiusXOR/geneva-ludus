@@ -1,7 +1,0 @@
----
-# Optional post-Ludus config for Geneva (Kali notes / SSH key).
-# Range owner: AD. GOAD is provisioned by Ludus roles in range.yml.
-#
-#   ansible-playbook deploy-range.yml --limit linattack
-#
-- import_playbook: deploy-lin.yml

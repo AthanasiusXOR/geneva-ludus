@@ -1,0 +1,22 @@
+---
+- name: Optional Kali post-config (SSH key)
+  hosts: linattack
+  become: true
+  vars:
+    lin_user: kali
+    operator_ssh_pubkey: "{{ lookup('file', 'files/lin_key.pub', errors='warn') | default('', true) }}"
+  tasks:
+    - name: Ensure .ssh exists
+      file:
+        path: "/home/{{ lin_user }}/.ssh"
+        state: directory
+        owner: "{{ lin_user }}"
+        group: "{{ lin_user }}"
+        mode: "0700"
+
+    - name: Install operator SSH public key
+      authorized_key:
+        user: "{{ lin_user }}"
+        key: "{{ operator_ssh_pubkey }}"
+        state: present
+      when: operator_ssh_pubkey | length > 0

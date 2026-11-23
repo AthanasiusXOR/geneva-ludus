@@ -1,16 +1,7 @@
 # yaml-language-server: $schema=https://docs.ludus.cloud/schemas/range-config.json
-#
-# Geneva range — Red-team infra + GOAD + Microsoft Defender ON
-#
-# Ludus host (Debian base): wittenberg
-# Ludus user / range owner: AD  (shell alias: administrator)
-#
-# Attack stack: VLANs 20/30/40
-# GOAD targets: VLAN 10 (sevenkingdoms / north / essos)
-#
-# Defender AV enabled (no disable_defender GPOs).
-# Cloud MDE onboarding = optional tenant package — see README.
-#
+# Geneva: GOAD (VLAN10) + redirs(20) + kali/c2/teamshare/winattack(30) + ansible(40)
+# Ludus userid: AD  |  Defender ON  |  network rules at bottom
+
 ludus:
   ###############################################
   # GOAD targets (VLAN 10) — Defender ENABLED
