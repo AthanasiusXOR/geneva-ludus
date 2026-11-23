@@ -28,7 +28,7 @@ Usage: ./setup-wittenberg.sh [--install] [--templates] [--users] [--deploy] [--p
 
   --install     curl -s https://ludus.cloud/install | bash  (no API key)
   --users       ludus user list; optional ludus user add (needs admin key)
-  --templates   add ubuntu-22.04 if needed, then build ALL standard templates (needs API key)
+  --templates   ensure ubuntu + show numbered list; Enter=build all, or pick numbers (needs API key)
   --deploy      range config set + range (needs API key)
   --parallel N  Packer concurrency (default 1)
 USAGE
@@ -143,8 +143,8 @@ resolve_bsl() {
 # https://docs.ludus.cloud/docs/quick-start/build-templates/
 # https://docs.ludus.cloud/docs/using-ludus/sources
 #
-# 1) Ensure ubuntu-22.04 is in the catalog (not always present by default)
-# 2) Build EVERY template currently listed (standard defaults + ubuntu)
+# Always ensure ubuntu-22.04 (Geneva). Show numbered catalog.
+# Enter = build ALL in catalog (standards + ubuntu). Numbers = build only those.
 if [[ $DO_TEMPLATES -eq 1 ]]; then
   need_api_key --templates
 
@@ -154,8 +154,9 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
   log "templates list (before)"
   ludus templates list || true
 
+  # Geneva needs ubuntu; not always in the default catalog
   if ! ludus templates list 2>/dev/null | grep -Fq "$EXTRA"; then
-    log "Adding Geneva extra: $EXTRA from $bsl"
+    log "Adding Geneva required: $EXTRA from $bsl"
     set +e
     ludus source add "$bsl" --templates "$EXTRA"
     rc=$?
@@ -167,30 +168,108 @@ if [[ $DO_TEMPLATES -eq 1 ]]; then
     log "$EXTRA already in catalog"
   fi
 
-  log "templates list (will build all NOT BUILT)"
+  # Numbered list: installed templates + source catalog names
+  mapfile -t CATALOG < <(
+    {
+      ludus templates list 2>/dev/null || true
+      ludus source list "$bsl" --catalog 2>/dev/null || true
+      ludus source list ludus-source-bsl --catalog 2>/dev/null || true
+    } | grep -Eo '[A-Za-z0-9._+-]+-template' | sort -u
+  )
+  if [[ ${#CATALOG[@]} -eq 0 ]]; then
+    CATALOG=(
+      debian-12-x64-server-template
+      debian-13-x64-server-template
+      kali-x64-desktop-template
+      ubuntu-22.04-x64-server-template
+      win11-22h2-x64-enterprise-template
+      win2022-server-x64-template
+    )
+  fi
+
+  echo
+  echo "Available templates:"
+  for i in "${!CATALOG[@]}"; do
+    mark=""
+    case "${CATALOG[$i]}" in
+      win2022-server-x64-template|ubuntu-22.04-x64-server-template|kali-x64-desktop-template) mark="  [Geneva]" ;;
+    esac
+    printf "  %2d) %s%s\n" "$((i + 1))" "${CATALOG[$i]}" "$mark"
+  done
+  echo
+  echo "Enter = build ALL templates currently in the catalog (standard + ubuntu)."
+  echo "Or pick numbers to build only those (e.g. 3 5 10) — will source-add if needed:"
+  read -r -p "> " selection
+
+  BUILD_ALL=0
+  SELECTED=()
+  if [[ -z "${selection// /}" ]]; then
+    BUILD_ALL=1
+    log "Building ALL templates in catalog (standard defaults + ubuntu)"
+  else
+    selection="${selection//,/ }"
+    for n in $selection; do
+      [[ "$n" =~ ^[0-9]+$ ]] || die "Not a number: $n"
+      idx=$((n - 1))
+      if [[ $idx -lt 0 || $idx -ge ${#CATALOG[@]} ]]; then
+        die "Out of range: $n (1-${#CATALOG[@]})"
+      fi
+      SELECTED+=("${CATALOG[$idx]}")
+    done
+    # dedupe
+    DEDUPED=()
+    for t in "${SELECTED[@]}"; do
+      skip=0
+      for d in "${DEDUPED[@]+"${DEDUPED[@]}"}"; do
+        [[ "$d" == "$t" ]] && { skip=1; break; }
+      done
+      [[ $skip -eq 1 ]] || DEDUPED+=("$t")
+    done
+    SELECTED=("${DEDUPED[@]}")
+    [[ ${#SELECTED[@]} -gt 0 ]] || die "No templates selected"
+    NEEDED_CSV="$(IFS=,; echo "${SELECTED[*]}")"
+    log "source add selected: $NEEDED_CSV"
+    set +e
+    ludus source add "$bsl" --templates "$NEEDED_CSV"
+    rc=$?
+    [[ $rc -eq 0 ]] || ludus source add "$BSL_URL" --templates "$NEEDED_CSV"
+    rc=$?
+    set -e
+    [[ $rc -eq 0 ]] || die "source add failed for selection"
+  fi
+
   ludus templates list
 
-  # Packer VMs use Ludus dnsmasq (192.0.2.0/24). Stale dnsmasq → DHCP hang /
-  # "Waiting for SSH" forever on ubuntu/debian builds. Restart before Packer.
+  # Packer DHCP — restart dnsmasq before builds
   if systemctl list-unit-files dnsmasq.service >/dev/null 2>&1; then
     log "systemctl restart dnsmasq (Packer DHCP)"
     systemctl restart dnsmasq
     systemctl is-active --quiet dnsmasq || die "dnsmasq failed to start — fix before building templates"
   else
-    log "dnsmasq.service not found — skipping restart (OK if Ludus uses another unit name)"
+    log "dnsmasq.service not found — skipping restart"
   fi
 
-  # Docs: ludus templates build  → builds every template in the catalog
-  log "ludus templates build (all standard + ubuntu)"
-  if (( PARALLEL > 1 )); then
-    ludus templates build --parallel "$PARALLEL"
+  if [[ "$BUILD_ALL" -eq 1 ]]; then
+    log "ludus templates build (all)"
+    if (( PARALLEL > 1 )); then
+      ludus templates build --parallel "$PARALLEL"
+    else
+      ludus templates build
+    fi
   else
-    ludus templates build
+    NEEDED_CSV="$(IFS=,; echo "${SELECTED[*]}")"
+    log "ludus templates build -n $NEEDED_CSV"
+    if (( PARALLEL > 1 )); then
+      ludus templates build -n "$NEEDED_CSV" --parallel "$PARALLEL"
+    else
+      ludus templates build -n "$NEEDED_CSV"
+    fi
   fi
+
   echo
   echo "Watch: ludus templates logs -f"
   echo "If a build hangs on DHCP/SSH: ludus templates abort ; systemctl restart dnsmasq ; rebuild that template"
-  echo "When all show BUILT/TRUE, run: ./setup-wittenberg.sh --deploy"
+  echo "When needed templates show BUILT/TRUE, run: ./setup-wittenberg.sh --deploy"
 fi
 
 # --- --deploy ---

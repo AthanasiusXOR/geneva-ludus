@@ -24,10 +24,10 @@ export LUDUS_API_KEY='YOURUSER.…'    # initial admin key (not ROOT)
 # 2) Optional extra user
 ./setup-wittenberg.sh --users
 
-# 3) Add ubuntu-22.04 if missing + build ALL catalog templates
+# 3) Ensure ubuntu + numbered list (Enter = build all standards; or pick 1 2 3…)
 ./setup-wittenberg.sh --templates
 ludus templates logs -f
-ludus templates list                 # all BUILT before deploy
+ludus templates list                 # needed ones BUILT before deploy
 
 # 4) Deploy Geneva
 ./setup-wittenberg.sh --deploy
