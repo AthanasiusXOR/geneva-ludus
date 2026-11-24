@@ -1,6 +1,14 @@
 # yaml-language-server: $schema=https://docs.ludus.cloud/schemas/range-config.json
-# Geneva: GOAD (VLAN10) + redirs(20) + kali/c2/teamshare/winattack(30) + ansible(40)
-# Ludus range owner = LUDUS_API_KEY prefix ({{ range_id }}) | Defender ON | VLAN rules at bottom
+#
+# Geneva — GOAD Active Directory + red-team attack infrastructure
+#   VLAN 10  GOAD targets (Defender ENABLED — no disable_defender GPO)
+#   VLAN 20  Redirectors
+#   VLAN 30  Kali / winattack / C2 / teamshare
+#   VLAN 40  Ansible controller
+# Range owner = LUDUS_API_KEY prefix → {{ range_id }}
+# Based on: https://github.com/Orange-Cyberdefense/GOAD
+# Ludus blueprint: https://github.com/badsectorlabs/ludus-source-bsl/tree/main/blueprints/goad
+#
 
 ludus:
   ###############################################

@@ -4,7 +4,7 @@
   become: true
   vars:
     lin_user: kali
-    operator_ssh_pubkey: "{{ lookup('file', 'files/lin_key.pub', errors='warn') | default('', true) }}"
+    operator_ssh_pubkey: "{{ lookup('file', 'files/lin_key.pub', errors='warn') | default('', true) | regex_replace('(?m)^#.*\n?', '') | trim }}"
   tasks:
     - name: Ensure .ssh exists
       file:
